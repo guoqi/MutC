@@ -19,6 +19,7 @@ public:
      * Parse source code and generate AST and symbol table.
      */
     virtual void parse() = 0;
+    virtual void decorateAST() = 0;
 
 protected:
     /*
@@ -39,6 +40,30 @@ public:
     virtual ~MutCParser () {}
 
     virtual void parse();
+    virtual void decorateAST();
+    void typeChecking ();
+
+private:
+    void decorateStmts(Stmt::Ptr s);
+    void decorateExp(Exp::Ptr exp);
+
+    void check (Stmt::Ptr s);
+    void checkExp(Exp::Ptr exp);
+    void checkUnaryExp (Exp::Ptr unary);
+    void checkBinaryExp (Exp::Ptr binary);
+    void checkArrayExp (Exp::Ptr array);
+    void checkFuncExp (Exp::Ptr func);
+    void checkBoolean (Exp::Ptr exp);
+    void checkNumber (Exp::Ptr exp);
+    void checkInteger (Exp::Ptr exp);
+    void checkString (Exp::Ptr exp);
+    void checkPointer (Exp::Ptr exp);
+    void checkArray (Exp::Ptr exp);
+    void checkStruct (Exp::Ptr exp);
+    void checkVariable (Exp::Ptr exp);
+    void checkAssignment (Stmt::Ptr assignment);
+
+    bool compareType(Type * type1, Type * type2);
 
 private:
     /*

@@ -179,6 +179,8 @@ public:
     inline Scope::Ptr globalScope() { return __global_scope; }
     inline Scope::Ptr globalScope(Scope::Ptr & global) { __global_scope = global; return __global_scope; }
 
+    inline void reset() { __cur_scope = __global_scope; __cur_index = 0; }
+
 private:
     Scope::Ptr              __global_scope;
     Scope::Ptr              __cur_scope;    // current scope ptr

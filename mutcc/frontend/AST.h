@@ -10,6 +10,7 @@
 #include <memory>
 #include <vector>
 #include "Token.h"
+#include "SymbolTable.h"
 
 using namespace std;
 
@@ -30,6 +31,8 @@ enum class NodeType {
     AssignmentStmt
 };
 
+class Scope;
+
 class Node
 {
 public:
@@ -38,9 +41,12 @@ public:
     virtual ~Node() {}
 
     inline NodeType type() { return __type; }
+    inline Scope * curScope() { return __curScope; }
+    inline void setScope(Scope * scope) { __curScope = scope; }
 
 protected:
     NodeType    __type;
+    Scope *     __curScope; // 当前所属作用域
 };
 
 class  Exp: public Node
@@ -50,6 +56,8 @@ public:
 
     Exp(): Node() {}
     virtual ~Exp() {}
+
+    virtual Type * typeInfo() = 0;
 };
 
 // unary operator expression
@@ -62,6 +70,8 @@ public:
     Exp::Ptr     expr1;
     // operator
     inline Token::Ptr op() { return __operator; }
+
+    virtual Type * typeInfo();
 
 protected:
     Token::Ptr      __operator;
@@ -79,6 +89,8 @@ public:
     // operator
     inline Token::Ptr op() { return __operator; }
 
+    virtual Type * typeInfo();
+
 protected:
     Token::Ptr      __operator;
 };
@@ -89,8 +101,11 @@ public:
     ArrayExp(Token::Ptr token): array(token) { __type = NodeType::ArrayExp; }
     virtual ~ArrayExp () {}
 
+    virtual Type * typeInfo();
+
     Token::Ptr                array;
     vector<Exp::Ptr>          index_list;
+    SymEntry::Ptr             sym_entry;
 };
 
 struct FuncExp: public Exp
@@ -99,8 +114,11 @@ public:
     FuncExp(Token::Ptr token): func(token) { __type = NodeType::FuncExp; }
     virtual ~FuncExp () {}
 
+    virtual Type * typeInfo();
+
     Token::Ptr            func;
     vector<Exp::Ptr>      param_list;
+    SymEntry::Ptr         sym_entry;
 };
 
 struct AtomicExp: public Exp
@@ -109,7 +127,10 @@ public:
     AtomicExp(Token::Ptr token): var(token) { __type = NodeType::AtomicExp; }
     virtual ~AtomicExp() {}
 
+    virtual Type * typeInfo();
+
     Token::Ptr          var;
+    SymEntry::Ptr       sym_entry;
 };
 
 
@@ -178,6 +199,7 @@ struct AssignmentStmt: public Stmt
 
     Token::Ptr  op; // assignment operator
     Token::Ptr  lvalue; // left value
+    SymEntry::Ptr sym_entry;
     Exp::Ptr    rvalue; // right value
 };
 

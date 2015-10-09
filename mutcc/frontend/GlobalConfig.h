@@ -55,6 +55,14 @@ const set<string> COMPOP = {
     "<="
 };
 
+const set<string> COMPUTEOP = {
+    "+",
+    "-",
+    "*",
+    "/",
+    "%"
+};
+
 
 const set<string> SYMBOL_SET = {
     "{",

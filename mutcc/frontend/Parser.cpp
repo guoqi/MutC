@@ -29,6 +29,293 @@ void MutCParser::parse ()
 }
 
 
+void MutCParser::decorateAST ()
+{
+    Stmt::Ptr p = __ast.program ();
+    decorateStmts (p);
+    __scope_tree.reset ();
+}
+
+void MutCParser::decorateStmts (Stmt::Ptr s)
+{
+    Stmt::Ptr tmp;
+    while (s != nullptr)
+    {
+        s->setScope (__scope_tree.curScope ().get ());
+        switch (s->type ())
+        {
+            case NodeType::FuncStmt:
+                __scope_tree.enterScope ();
+                decorateStmts (static_pointer_cast <FuncStmt> (s)->block_stmt);
+                __scope_tree.closeScope ();
+                break;
+            case NodeType::IfStmt:
+                tmp = s;
+                while (tmp != nullptr)
+                {
+                    decorateExp (static_pointer_cast<IfStmt> (s)->condition);
+                    __scope_tree.enterScope ();
+                    decorateStmts (static_pointer_cast<IfStmt> (s)->block_stmt);
+                    __scope_tree.closeScope ();
+                    tmp = static_pointer_cast <IfStmt> (s)->clause_next;
+                }
+                break;
+            case NodeType::WhileStmt:
+                decorateExp (static_pointer_cast <WhileStmt> (s)->condition);
+                __scope_tree.enterScope ();
+                decorateStmts (static_pointer_cast <WhileStmt> (s)->block_stmt);
+                __scope_tree.closeScope ();
+                break;
+            case NodeType::ForStmt:
+                decorateStmts (static_pointer_cast <ForStmt> (s)->initial_stmt);
+                decorateExp (static_pointer_cast <ForStmt> (s)->condition);
+                decorateStmts (static_pointer_cast <ForStmt> (s)->modify_stmt);
+                __scope_tree.enterScope ();
+                decorateStmts (static_pointer_cast <ForStmt> (s)->block_stmt);
+                __scope_tree.closeScope ();
+                break;
+            case NodeType::AssignmentStmt:
+                static_pointer_cast <AssignmentStmt> (s)->sym_entry =
+                    __scope_tree.curScope ()->lookUpVar (static_pointer_cast <AssignmentStmt> (s)->lvalue->text ());
+                decorateExp (static_pointer_cast <AssignmentStmt> (s)->rvalue);
+                break;
+            case NodeType::ReturnStmt:
+                decorateExp (static_pointer_cast <ReturnStmt> (s)->rslt);
+                break;
+            default:
+                break;
+        }
+        s = s->next ();
+    }
+}
+
+void MutCParser::decorateExp (Exp::Ptr exp)
+{
+    exp->setScope (__scope_tree.curScope ().get ());
+    switch (exp->type ())
+    {
+        case NodeType::UnaryExp:
+            decorateExp (static_pointer_cast <UnaryExp> (exp)->expr1);
+            break;
+        case NodeType::BinaryExp:
+            decorateExp (static_pointer_cast <BinaryExp> (exp)->expr1);
+            decorateExp (static_pointer_cast <BinaryExp> (exp)->expr2);
+            break;
+        case NodeType::ArrayExp:
+            static_pointer_cast <ArrayExp> (exp)->sym_entry =
+                __scope_tree.curScope ()->lookUpVar (static_pointer_cast <ArrayExp> (exp)->array->text ());
+            for (auto i : static_pointer_cast <ArrayExp> (exp)->index_list)
+            {
+                decorateExp (i);
+            }
+            break;
+        case NodeType::FuncExp:
+            static_pointer_cast <FuncExp> (exp)->sym_entry =
+                __scope_tree.curScope ()->lookUpFunc (static_pointer_cast <FuncExp> (exp)->func->text ());
+            for (auto i : static_pointer_cast <FuncExp> (exp)->param_list)
+            {
+                decorateExp (i);
+            }
+            break;
+        case NodeType::AtomicExp:
+            static_pointer_cast <AtomicExp> (exp)->sym_entry =
+                __scope_tree.curScope ()->lookUpVar (static_pointer_cast <AtomicExp> (exp)->var->text ());
+            break;
+        default:
+            break;
+    }
+}
+
+
+void MutCParser::typeChecking ()
+{
+    return check (__ast.program ());
+}
+
+void MutCParser::check (Stmt::Ptr s)
+{
+    bool ret;
+    Stmt::Ptr tmp;
+    while (s != nullptr)
+    {
+        switch (s->type ())
+        {
+            case NodeType::FuncStmt:
+                check(static_pointer_cast <FuncStmt> (s)->block_stmt);
+                break;
+            case NodeType::IfStmt:
+                tmp = s;
+                while (tmp != nullptr) {
+                    checkBoolean (static_pointer_cast<IfStmt> (s)->condition->typeInfo ());
+                    check(static_pointer_cast <IfStmt> (s)->block_stmt);
+                    tmp = static_pointer_cast <IfStmt> (s)->clause_next;
+                }
+                break;
+            case NodeType::WhileStmt:
+                checkBoolean (static_pointer_cast<WhileStmt> (s)->condition->typeInfo ());
+                check(static_pointer_cast <WhileStmt> (s)->block_stmt);
+                break;
+            case NodeType::ForStmt:
+                checkAssignment (static_pointer_cast <ForStmt> (s)->initial_stmt);
+                checkBoolean (static_pointer_cast<ForStmt> (s)->condition->typeInfo ());
+                checkAssignment (static_pointer_cast <ForStmt> (s)->modify_stmt);
+                break;
+            case NodeType::AssignmentStmt:
+                checkAssignment (s);
+                break;
+        }
+    }
+}
+
+void MutCParser::checkExp (Exp::Ptr exp)
+{
+    switch (exp->type ())
+    {
+        case NodeType::UnaryExp:
+            checkUnaryExp (exp);
+            break;
+        case NodeType::BinaryExp:
+            checkBinaryExp (exp);
+            break;
+        case NodeType::ArrayExp:
+            checkArrayExp (exp);
+            break;
+        case NodeType::FuncExp:
+            checkFuncExp (exp);
+            break;
+        default:
+            break;
+    }
+}
+
+void MutCParser::checkUnaryExp (Exp::Ptr unary)
+{
+    Token::Ptr op = static_pointer_cast <UnaryExp> (unary)->op ();
+    if (op->text () == "not")
+    {
+        checkBoolean (static_pointer_cast<UnaryExp> (unary)->expr1);
+    }
+    else if (op->text () == "+" || op->text () == "-")
+    {
+        checkNumber (static_pointer_cast <UnaryExp> (unary)->expr1);
+    }
+    else if (op->text () == "*")
+    {
+        checkPointer (static_pointer_cast <UnaryExp> (unary)->expr1);
+    }
+    else if (op->text () == "@")
+    {
+        checkVariable (static_pointer_cast <UnaryExp> (unary)->expr1);
+    }
+}
+
+void MutCParser::checkBinaryExp (Exp::Ptr binary)
+{
+    Token::Ptr op = static_pointer_cast <BinaryExp> (binary)->op ();
+    if (op->text () == "and" || op->text () == "or")
+    {
+        checkBoolean (static_pointer_cast <BinaryExp> (binary)->expr1);
+        checkBoolean (static_pointer_cast <BinaryExp> (binary)->expr2);
+    }
+    else if (COMPOP.find (op->text ()) != COMPOP.end ())
+    {
+        checkExp (static_pointer_cast <BinaryExp> (binary)->expr1);
+        checkExp (static_pointer_cast <BinaryExp> (binary)->expr2);
+    }
+    else if (COMPUTEOP.find (op->text ()) != COMPUTEOP.end ())
+    {
+        checkNumber (static_pointer_cast <BinaryExp> (binary)->expr1);
+        checkNumber (static_pointer_cast <BinaryExp> (binary)->expr2);
+    }
+    else if (op->text () == ".")
+    {
+
+    }
+    else if (op->text () == "->")
+    {
+
+    }
+}
+
+void MutCParser::checkArrayExp (Exp::Ptr array)
+{
+    for (auto i : static_pointer_cast <ArrayExp>(array)->index_list)
+    {
+        checkInteger (i);
+    }
+}
+
+void MutCParser::checkFuncExp (Exp::Ptr func)
+{
+    for (auto i : static_pointer_cast <FuncExp>(func)->param_list)
+    {
+        checkExp (i);
+        // TODO
+    }
+}
+
+void MutCParser::checkBoolean (Exp::Ptr exp)
+{
+    const static Type * boolean = new Type(TypeInfo::Boolean);
+    checkExp (exp);
+    if (! exp->typeInfo (), boolean);
+    {
+        // TODO error handling: type mismatch
+    }
+}
+
+void MutCParser::checkInteger (Exp::Ptr exp)
+{
+    // TODO
+}
+
+void MutCParser::checkNumber (Exp::Ptr exp)
+{
+    // TODO
+}
+
+void MutCParser::checkString (Exp::Ptr exp)
+{
+    // TODO
+}
+
+void MutCParser::checkPointer (Exp::Ptr exp)
+{
+    // TODO
+}
+
+void MutCParser::checkArray (Exp::Ptr array)
+{
+    // TODO
+}
+
+void MutCParser::checkStruct (Exp::Ptr exp)
+{
+    // TODO
+}
+
+void MutCParser::checkVariable (Exp::Ptr exp)
+{
+    // TODO
+}
+
+void MutCParser::checkAssignment (Stmt::Ptr assignment)
+{
+    SymEntry::Ptr entry = static_pointer_cast <AssignmentStmt> (assignment)->sym_entry;
+    checkExp (static_pointer_cast <AssignmentStmt> (assignment)->rvalue);
+    if (! compareType (static_pointer_cast <VarEntry> (entry)->typeInfo (),
+        static_pointer_cast <AssignmentStmt> (assignment)->rvalue->typeInfo ()))
+    {
+        // TODO error handling: type mismatch
+    }
+}
+
+bool MutCParser::compareType (Type *type1, Type *type2)
+{
+    // TODO
+}
+
+
 Stmt::Ptr MutCParser::parseOutBlock ()
 {
     Stmt::Ptr root = make_shared <Stmt>();
