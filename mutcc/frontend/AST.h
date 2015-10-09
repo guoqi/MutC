@@ -158,7 +158,8 @@ struct IfStmt: public Stmt
 
     Exp::Ptr    condition;  // condition expression
     Stmt::Ptr   block_stmt; // root node of inner-block statement linked list
-    IfStmt::Ptr clause_next;
+    // if stmt
+    Stmt::Ptr   clause_next;
 };
 
 struct WhileStmt: public Stmt
@@ -191,9 +192,11 @@ struct ForStmt: public Stmt
 {
     ForStmt(): Stmt() { __type = NodeType::ForStmt; }
 
-    AssignmentStmt::Ptr     initial_stmt; // initial assignment statement
+    // assignment stmt
+    Stmt::Ptr               initial_stmt; // initial assignment statement
     Exp::Ptr                condition;  // condition expression
-    AssignmentStmt::Ptr     modify_stmt; // every time loop runs it will be executed to modify condition variable.
+    // assignment stmt
+    Stmt::Ptr               modify_stmt; // every time loop runs it will be executed to modify condition variable.
     Stmt::Ptr               block_stmt;
 };
 

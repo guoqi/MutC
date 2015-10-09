@@ -22,7 +22,27 @@ enum class EntryType {
     Function
 };
 
-class SymbolTable;
+
+class VarEntry;
+class TypeEntry;
+class FuncEntry;
+class Type;
+
+template<typename TEntry>
+class SymbolTable
+{
+public:
+    SymbolTable() {}
+    virtual ~SymbolTable () {}
+
+    virtual typename TEntry::Ptr lookUp(string name);
+    virtual void insert(typename TEntry::Ptr & value);
+
+private:
+    map<string, typename TEntry::Ptr>    __table;
+};
+
+
 typedef SymbolTable<VarEntry>  VarSymbolTable;
 typedef SymbolTable<TypeEntry> TypeSymbolTable;
 typedef SymbolTable<FuncEntry> FuncSymbolTable;
@@ -32,7 +52,7 @@ class SymEntry
 public:
     typedef shared_ptr<SymEntry> Ptr;
     SymEntry(Token::Ptr token, EntryType type): __entry_type(type), __token(token) {}
-    virtual SymEntry() {}
+    virtual ~SymEntry() {}
 
     inline Token::Ptr token() { return __token; }
     inline EntryType entryType() { return __entry_type; }
@@ -69,7 +89,7 @@ class FuncEntry: public SymEntry
 {
 public:
     typedef shared_ptr<FuncEntry> Ptr;
-    FuncEntry(Token::Ptr token, Type * ret_type): SymEntry(token, EntryType::Function), ret_type(ret_type) {}
+    FuncEntry(Token::Ptr token): SymEntry(token, EntryType::Function) {}
     virtual ~FuncEntry () {}
 
     VarSymbolTable                  memlist; // parameter map
@@ -77,19 +97,6 @@ public:
 };
 
 
-template<typename TEntry>
-class SymbolTable
-{
-public:
-    SymbolTable() {}
-    virtual ~SymbolTable () {}
-
-    virtual TEntry::Ptr lookUp(string name);
-    virtual void insert(TEntry::Ptr & value);
-
-private:
-    map<string, TEntry::Ptr>    __table;
-};
 
 /*
 class VarSymbolTable: public SymbolTable

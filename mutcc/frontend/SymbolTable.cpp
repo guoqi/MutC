@@ -8,15 +8,15 @@
 #include "SymbolTable.h"
 
 template<typename TEntry>
-void SymbolTable::insert (TEntry::Ptr &value)
+void SymbolTable<TEntry>::insert (typename TEntry::Ptr &value)
 {
-    __table.insert(pair<string, TEntry>(value->token()->text(), value));
+    __table.insert(pair<string, typename TEntry::Ptr>(value->token()->text(), value));
 }
 
 template<typename TEntry>
-TEntry::Ptr SymbolTable::lookUp (string name)
+typename TEntry::Ptr SymbolTable<TEntry>::lookUp (string name)
 {
-    map<string, TEntry::Ptr>::const_iterator iter = __table.find(name);
+    typename map<string, typename TEntry::Ptr>::const_iterator iter = __table.find(name);
     if (iter != __table.end ())
     {
         return iter->second;

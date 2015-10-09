@@ -657,7 +657,7 @@ void MutCParser::toolParamList (SymEntry::Ptr entry, string delimiter, string en
         // TODO error handling: expect a id or a delimiter
     }
     nextToken ();
-    toolParamList (entry, delimiter, end_word);
+    toolParamList<T> (entry, delimiter, end_word);
 }
 
 template <typename T>
@@ -676,7 +676,7 @@ void MutCParser::toolNameList (Stmt::Ptr stmt, string delimiter, string end_word
         // TODO error handling: expect a id or a delimiter
     }
     nextToken ();
-    toolNameList (stmt, delimiter, end_word);
+    toolNameList<T> (stmt, delimiter, end_word);
 }
 
 
