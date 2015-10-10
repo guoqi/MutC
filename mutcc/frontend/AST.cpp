@@ -26,10 +26,10 @@ Type* UnaryExp::typeInfo ()
 
 Type* BinaryExp::typeInfo ()
 {
-    if (__operator == "." || __operator == "->")
+    if (__operator->text () == "." || __operator->text () == "->")
     {
         string type_name;
-        if (__operator == ".") {
+        if (__operator->text () == ".") {
             type_name = static_cast <StructType *> (expr1->typeInfo ())->name ();
         }
         else {

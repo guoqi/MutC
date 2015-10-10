@@ -146,18 +146,18 @@ void MutCParser::check (Stmt::Ptr s)
             case NodeType::IfStmt:
                 tmp = s;
                 while (tmp != nullptr) {
-                    checkBoolean (static_pointer_cast<IfStmt> (s)->condition->typeInfo ());
+                    checkBoolean (static_pointer_cast<IfStmt> (s)->condition);
                     check(static_pointer_cast <IfStmt> (s)->block_stmt);
                     tmp = static_pointer_cast <IfStmt> (s)->clause_next;
                 }
                 break;
             case NodeType::WhileStmt:
-                checkBoolean (static_pointer_cast<WhileStmt> (s)->condition->typeInfo ());
+                checkBoolean (static_pointer_cast<WhileStmt> (s)->condition);
                 check(static_pointer_cast <WhileStmt> (s)->block_stmt);
                 break;
             case NodeType::ForStmt:
                 checkAssignment (static_pointer_cast <ForStmt> (s)->initial_stmt);
-                checkBoolean (static_pointer_cast<ForStmt> (s)->condition->typeInfo ());
+                checkBoolean (static_pointer_cast<ForStmt> (s)->condition);
                 checkAssignment (static_pointer_cast <ForStmt> (s)->modify_stmt);
                 break;
             case NodeType::AssignmentStmt:
