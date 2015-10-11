@@ -10,16 +10,16 @@
 template<typename TEntry>
 void SymbolTable<TEntry>::insert (typename TEntry::Ptr &value)
 {
-    __table.insert(pair<string, typename TEntry::Ptr>(value->token()->text(), value));
+    __table.push_back (value);
 }
 
 template<typename TEntry>
 typename TEntry::Ptr SymbolTable<TEntry>::lookUp (string name)
 {
-    typename map<string, typename TEntry::Ptr>::const_iterator iter = __table.find(name);
-    if (iter != __table.end ())
-    {
-        return iter->second;
+    for (auto & i : __table) {
+        if (i->token()->text() == name) {
+            return i;
+        }
     }
     return nullptr;
 }

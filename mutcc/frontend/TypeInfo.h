@@ -65,13 +65,15 @@ private:
 class StructType: public Type
 {
 public:
-    StructType(string name): Type(TypeInfo::Struct), __name(name) {}
+    StructType(string name, TypeEntry * sym_entry): Type(TypeInfo::Struct), __name(name), __sym_entry(sym_entry) {}
     virtual ~StructType () {}
 
     inline string name() { return __name; }
+    inline TypeEntry * symEntry() { return __sym_entry; }
 
 private:
     string      __name;
+    TypeEntry * __sym_entry;
 };
 
 

@@ -43,9 +43,13 @@ public:
     virtual void decorateAST();
     void typeChecking ();
 
+    AST & ast() { return __ast; }
+    ScopeTree & scopeTree() { return __scope_tree; }
+
 private:
-    void decorateStmts(Stmt::Ptr s);
-    void decorateExp(Exp::Ptr exp);
+    void decorateOutBlockStmts (Stmt::Ptr s);
+    void decorateInBlockStmts (Stmt::Ptr s, FuncEntry *func);
+    void decorateExp (Exp::Ptr exp, FuncEntry *func);
 
     void check (Stmt::Ptr s);
     void checkExp(Exp::Ptr exp);
@@ -77,7 +81,7 @@ private:
     // NAMELIST := ID(E|,NAMELIST)
     Stmt::Ptr parseExport();
     // funcStmt  := {InBlockStmt}
-    Stmt::Ptr parseFunc();
+    Stmt::Ptr parseFunc (Token::Ptr name);
     Stmt::Ptr parseInBlock(Scope::Ptr curScope);
 
     /*
@@ -112,10 +116,10 @@ private:
      */
     // declStmt := decl ID{PARAMLIST};
     void parseDecl(Scope::Ptr curScope);
-    void parseLet(Scope::Ptr  curScope);
+    Stmt::Ptr parseLet (Scope::Ptr curScope);
     // funcStmt := fn ID(PARAMLIST):TYPE
     // PARAMLIST := ID:TYPE(E|,PARAMLIST) | E
-    void parseFunc (Scope::Ptr curScope);
+    Token::Ptr parseFunc (Scope::Ptr curScope);
 
     Type * parseType();
 

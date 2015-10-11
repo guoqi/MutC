@@ -32,55 +32,29 @@ void MutCParser::parse ()
 void MutCParser::decorateAST ()
 {
     Stmt::Ptr p = __ast.program ();
-    decorateStmts (p);
+    decorateOutBlockStmts (p);
     __scope_tree.reset ();
 }
 
-void MutCParser::decorateStmts (Stmt::Ptr s)
+void MutCParser::decorateOutBlockStmts (Stmt::Ptr s)
 {
     Stmt::Ptr tmp;
     while (s != nullptr)
     {
-        s->setScope (__scope_tree.curScope ().get ());
+        s->setScope (__scope_tree.globalScope ().get ());
         switch (s->type ())
         {
             case NodeType::FuncStmt:
+                static_pointer_cast <FuncStmt> (s)->sym_entry =
+                    __scope_tree.curScope ()->lookUpFunc (static_pointer_cast <FuncStmt> (s)->name->text ());
                 __scope_tree.enterScope ();
-                decorateStmts (static_pointer_cast <FuncStmt> (s)->block_stmt);
+                decorateInBlockStmts (static_pointer_cast<FuncStmt> (s)->block_stmt,
+                                      static_cast <FuncEntry *>(static_pointer_cast <FuncStmt> (s)->sym_entry.get ()));
                 __scope_tree.closeScope ();
                 break;
-            case NodeType::IfStmt:
-                tmp = s;
-                while (tmp != nullptr)
-                {
-                    decorateExp (static_pointer_cast<IfStmt> (s)->condition);
-                    __scope_tree.enterScope ();
-                    decorateStmts (static_pointer_cast<IfStmt> (s)->block_stmt);
-                    __scope_tree.closeScope ();
-                    tmp = static_pointer_cast <IfStmt> (s)->clause_next;
-                }
-                break;
-            case NodeType::WhileStmt:
-                decorateExp (static_pointer_cast <WhileStmt> (s)->condition);
-                __scope_tree.enterScope ();
-                decorateStmts (static_pointer_cast <WhileStmt> (s)->block_stmt);
-                __scope_tree.closeScope ();
-                break;
-            case NodeType::ForStmt:
-                decorateStmts (static_pointer_cast <ForStmt> (s)->initial_stmt);
-                decorateExp (static_pointer_cast <ForStmt> (s)->condition);
-                decorateStmts (static_pointer_cast <ForStmt> (s)->modify_stmt);
-                __scope_tree.enterScope ();
-                decorateStmts (static_pointer_cast <ForStmt> (s)->block_stmt);
-                __scope_tree.closeScope ();
-                break;
-            case NodeType::AssignmentStmt:
-                static_pointer_cast <AssignmentStmt> (s)->sym_entry =
-                    __scope_tree.curScope ()->lookUpVar (static_pointer_cast <AssignmentStmt> (s)->lvalue->text ());
-                decorateExp (static_pointer_cast <AssignmentStmt> (s)->rvalue);
-                break;
-            case NodeType::ReturnStmt:
-                decorateExp (static_pointer_cast <ReturnStmt> (s)->rslt);
+            case NodeType::LetStmt:
+                static_pointer_cast <LetStmt> (s)->sym_entry =
+                    __scope_tree.curScope ()->lookUpVar (static_pointer_cast <LetStmt> (s)->var->text ());
                 break;
             default:
                 break;
@@ -89,24 +63,80 @@ void MutCParser::decorateStmts (Stmt::Ptr s)
     }
 }
 
-void MutCParser::decorateExp (Exp::Ptr exp)
+void MutCParser::decorateInBlockStmts (Stmt::Ptr s, FuncEntry *func)
+{
+    Stmt::Ptr tmp;
+    while (s != nullptr)
+    {
+        s->setScope (__scope_tree.curScope ().get ());
+        switch (s->type ())
+        {
+            case NodeType::LetStmt:
+                static_pointer_cast <LetStmt> (s)->sym_entry =
+                    __scope_tree.curScope ()->lookUpVar (static_pointer_cast <LetStmt> (s)->var->text ());
+                break;
+            case NodeType::IfStmt:
+                tmp = s;
+                while (tmp != nullptr)
+                {
+                    decorateExp (static_pointer_cast<IfStmt> (s)->condition, func);
+                    __scope_tree.enterScope ();
+                    decorateInBlockStmts (static_pointer_cast<IfStmt> (s)->block_stmt, func);
+                    __scope_tree.closeScope ();
+                    tmp = static_pointer_cast <IfStmt> (s)->clause_next;
+                }
+                break;
+            case NodeType::WhileStmt:
+                decorateExp (static_pointer_cast<WhileStmt> (s)->condition, func);
+                __scope_tree.enterScope ();
+                decorateInBlockStmts (static_pointer_cast<WhileStmt> (s)->block_stmt, func);
+                __scope_tree.closeScope ();
+                break;
+            case NodeType::ForStmt:
+                decorateInBlockStmts (static_pointer_cast<ForStmt> (s)->initial_stmt, func);
+                decorateExp (static_pointer_cast<ForStmt> (s)->condition, func);
+                decorateInBlockStmts (static_pointer_cast<ForStmt> (s)->modify_stmt, func);
+                __scope_tree.enterScope ();
+                decorateInBlockStmts (static_pointer_cast<ForStmt> (s)->block_stmt, func);
+                __scope_tree.closeScope ();
+                break;
+            case NodeType::AssignmentStmt:
+                static_pointer_cast <AssignmentStmt> (s)->sym_entry =
+                    __scope_tree.curScope ()->lookUpVar (static_pointer_cast <AssignmentStmt> (s)->lvalue->text ());
+                decorateExp (static_pointer_cast<AssignmentStmt> (s)->rvalue, func);
+                break;
+            case NodeType::ReturnStmt:
+                decorateExp (static_pointer_cast<ReturnStmt> (s)->rslt, func);
+                break;
+            default:
+                break;
+        }
+        s = s->next ();
+    }
+}
+
+void MutCParser::decorateExp (Exp::Ptr exp, FuncEntry *func)
 {
     exp->setScope (__scope_tree.curScope ().get ());
     switch (exp->type ())
     {
         case NodeType::UnaryExp:
-            decorateExp (static_pointer_cast <UnaryExp> (exp)->expr1);
+            decorateExp (static_pointer_cast<UnaryExp> (exp)->expr1, func);
             break;
         case NodeType::BinaryExp:
-            decorateExp (static_pointer_cast <BinaryExp> (exp)->expr1);
-            decorateExp (static_pointer_cast <BinaryExp> (exp)->expr2);
+            decorateExp (static_pointer_cast<BinaryExp> (exp)->expr1, func);
+            decorateExp (static_pointer_cast<BinaryExp> (exp)->expr2, func);
             break;
         case NodeType::ArrayExp:
             static_pointer_cast <ArrayExp> (exp)->sym_entry =
                 __scope_tree.curScope ()->lookUpVar (static_pointer_cast <ArrayExp> (exp)->array->text ());
+            if (static_pointer_cast <ArrayExp> (exp)->sym_entry == nullptr) {
+                static_pointer_cast <ArrayExp> (exp)->sym_entry =
+                    func->memlist.lookUp (static_pointer_cast <ArrayExp> (exp)->array->text ());
+            }
             for (auto i : static_pointer_cast <ArrayExp> (exp)->index_list)
             {
-                decorateExp (i);
+                decorateExp (i, func);
             }
             break;
         case NodeType::FuncExp:
@@ -114,12 +144,16 @@ void MutCParser::decorateExp (Exp::Ptr exp)
                 __scope_tree.curScope ()->lookUpFunc (static_pointer_cast <FuncExp> (exp)->func->text ());
             for (auto i : static_pointer_cast <FuncExp> (exp)->param_list)
             {
-                decorateExp (i);
+                decorateExp (i, func);
             }
             break;
         case NodeType::AtomicExp:
             static_pointer_cast <AtomicExp> (exp)->sym_entry =
                 __scope_tree.curScope ()->lookUpVar (static_pointer_cast <AtomicExp> (exp)->var->text ());
+            if (static_pointer_cast <AtomicExp> (exp)->sym_entry == nullptr) {
+                static_pointer_cast <AtomicExp> (exp)->sym_entry =
+                    func->memlist.lookUp (static_pointer_cast <ArrayExp> (exp)->array->text ());
+            }
             break;
         default:
             break;
@@ -346,13 +380,12 @@ Stmt::Ptr MutCParser::parseOutBlock ()
             else if (text == "fn")
             {
                 // first we need parse function header and then we should parse function body.
-                parseFunc (__scope_tree.globalScope ());
-                p->next (parseFunc ());
+                Token::Ptr name = parseFunc (__scope_tree.globalScope ());
+                p->next (parseFunc (name));
             }
             else if (text == "let")
             {
-                parseLet (__scope_tree.globalScope ());
-                continue;
+                p->next (parseLet (__scope_tree.globalScope ()));
             }
             else
             {
@@ -398,11 +431,12 @@ Stmt::Ptr MutCParser::parseExport ()
 }
 
 
-Stmt::Ptr MutCParser::parseFunc ()
+Stmt::Ptr MutCParser::parseFunc (Token::Ptr name)
 {
     Stmt::Ptr p = make_shared <FuncStmt> ();
 
     assert (currentToken ()->type () == TokenType::Symbol && currentToken ()->text () == "{");
+    static_pointer_cast <FuncStmt> (p)->name = name;
     nextToken ();
     Scope::Ptr scope = make_shared <Scope> ();
     static_pointer_cast <FuncStmt> (p)->block_stmt = parseInBlock (scope);
@@ -448,9 +482,7 @@ Stmt::Ptr MutCParser::parseInBlock (Scope::Ptr curScope)
             }
             else if (text == "let")
             {
-                parseLet (curScope);
-                nextToken ();
-                continue;
+                p->next (parseLet (curScope));
             }
             else
             {
@@ -879,7 +911,11 @@ Type* MutCParser::parseType ()
     }
     else if (currentToken ()->type () == TokenType::Identifier)
     {
-        p = new StructType(currentToken ()->text ());
+        TypeEntry * type_entry = __scope_tree.globalScope ()->lookUpType (currentToken ()->text ()).get ();
+        if (p == nullptr) {
+            // TODO error handling: unknown type name
+        }
+        p = new StructType(currentToken ()->text (), type_entry);
     }
     else
     {
@@ -900,7 +936,7 @@ void MutCParser::parseDecl (Scope::Ptr curScope)
     curScope->typeTable.insert (p);
 }
 
-void MutCParser::parseLet (Scope::Ptr curScope)
+Stmt::Ptr MutCParser::parseLet (Scope::Ptr curScope)
 {
     assert(currentToken ()->type () == TokenType::Symbol && currentToken ()->text () == "let");
     Token::Ptr name = nextToken ();
@@ -909,9 +945,12 @@ void MutCParser::parseLet (Scope::Ptr curScope)
     VarEntry::Ptr p = make_shared <VarEntry> (name, parseType ());
     assert(currentToken ()->type () == TokenType::Symbol && currentToken ()->text () == ";");
     curScope->varTable.insert (p);
+    Stmt::Ptr s = make_shared <LetStmt> ();
+    static_pointer_cast <LetStmt> (s)->var = name;
+    return s;
 }
 
-void MutCParser::parseFunc (Scope::Ptr curScope)
+Token::Ptr MutCParser::parseFunc (Scope::Ptr curScope)
 {
     assert(currentToken ()->type () == TokenType::Keyword && currentToken ()->text () == "fn");
     FuncEntry::Ptr p = make_shared <FuncEntry> (nextToken ());
@@ -922,6 +961,7 @@ void MutCParser::parseFunc (Scope::Ptr curScope)
     assert (nextToken ()->type () == TokenType::Symbol && currentToken ()->text () == ":");
     p->ret_type = parseType ();
     curScope->funcTable.insert (p);
+    return p->token ();
 }
 
 template <typename T>

@@ -24,6 +24,7 @@ enum class NodeType {
     ImportStmt,
     ExportStmt,
     FuncStmt,
+    LetStmt,
     IfStmt,
     WhileStmt,
     ForStmt,
@@ -169,6 +170,16 @@ struct FuncStmt: public Stmt
     FuncStmt(): Stmt() { __type = NodeType::FuncStmt; }
 
     Stmt::Ptr               block_stmt; // root node of inner-block statement linked list
+    Token::Ptr              name;
+    SymEntry::Ptr           sym_entry;
+};
+
+struct LetStmt: public Stmt
+{
+    LetStmt(): Stmt() { __type = NodeType::LetStmt; }
+
+    Token::Ptr      var;
+    SymEntry::Ptr   sym_entry;
 };
 
 struct IfStmt: public Stmt

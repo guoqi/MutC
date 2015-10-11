@@ -10,6 +10,7 @@
 #include <vector>
 #include <stack>
 #include <string>
+#include <cstdint>
 #include "Token.h"
 #include "TypeInfo.h"
 
@@ -38,8 +39,10 @@ public:
     virtual typename TEntry::Ptr lookUp(string name);
     virtual void insert(typename TEntry::Ptr & value);
 
+    inline vector<typename TEntry::Ptr> & table() { return __table; };
+
 private:
-    map<string, typename TEntry::Ptr>    __table;
+    vector<typename TEntry::Ptr>    __table;
 };
 
 
@@ -51,15 +54,19 @@ class SymEntry
 {
 public:
     typedef shared_ptr<SymEntry> Ptr;
-    SymEntry(Token::Ptr token, EntryType type): __entry_type(type), __token(token) {}
+    SymEntry(Token::Ptr token, EntryType type): __entry_type(type), __token(token), __address(0) {}
     virtual ~SymEntry() {}
 
     inline Token::Ptr token() { return __token; }
     inline EntryType entryType() { return __entry_type; }
 
+    inline void address(uint64_t address) { __address = address; }
+    inline uint64_t address() { return __address; }
+
 private:
     Token::Ptr      __token;
     EntryType       __entry_type;
+    uint64_t        __address;
 };
 
 class VarEntry: public SymEntry
