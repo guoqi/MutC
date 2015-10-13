@@ -15,6 +15,9 @@ Code CodeGen::generate ()
 {
     genOutBlockStmt (__parser.ast ().program ().get ());
     __code.dataSize (__datamap.address ());
+    if (__code.mainAddr () == -1) {
+        // TODO error handling: the program must have main function at least.
+    }
     return __code;
 }
 
@@ -80,7 +83,13 @@ uint64_t CodeGen::genFuncStmt (FuncStmt *stmt)
     }
     genInBlockStmt (stmt->block_stmt.get ());
     genPopSP ();
-    genRet ();
+    if (stmt->name->text () == "main") {
+        __code.mainAddr (start);
+        genHalt ();
+    }
+    else {
+        genRet ();
+    }
     __stackmap.pop ();
     return start;
 }
@@ -185,17 +194,51 @@ uint64_t CodeGen::genAssignmentStmt (AssignmentStmt *stmt)
 
 uint64_t CodeGen::genReturnStmt (ReturnStmt *stmt)
 {
+    uint64_t start = __codemap.curAddr ();
 
+    uint64_t rslt_addr = genExp(stmt->rslt.get ());
+    uint64_t size = sizeOf (stmt->rslt->typeInfo ());   // 注意表达式的类型推断部分还没完成，而该处需要依赖类型推断
+
+    __code.insertInstruction (__codemap.mmap (), __factory.createInstruction (0x80, size, __stackmap.bp ()-size, rslt_addr));
+
+    return start;
 }
 
 uint64_t CodeGen::genExp (Exp *exp)
 {
-
+    switch (exp->type ()) {
+        case NodeType::UnaryExp:
+            return genUnaryExp (static_cast<UnaryExp *>(exp));
+        case NodeType::BinaryExp:
+            return genBinaryExp (static_cast <BinaryExp *> (exp));
+        case NodeType::ArrayExp:
+            return genArrayExp (static_cast<ArrayExp *>(exp));
+        case NodeType::FuncExp:
+            return genFuncExp (static_cast<FuncExp *>(exp));
+        case NodeType::AtomicExp:
+            return genAtomicExp (static_cast<AtomicExp *>(exp));
+        default:
+            break;
+    }
+    return 0;
 }
 
 uint64_t CodeGen::genUnaryExp (UnaryExp *exp)
 {
+    string text = exp->op ()->text ();
 
+    uint64_t value_addr = genExp (exp->expr1.get ());
+    uint64_t size = sizeOf (exp->expr1->typeInfo ());
+    Instruction inc(0);
+
+    if (text == "+") {
+        inc = __factory.createInstruction (0x80, size, __stackmap.mmap (size), value_addr);
+    }
+    else if (text == "-") {
+        uint64_t addr = __stackmap.mmap (size);
+        inc = __factory.createInstruction (0x80, size, addr, 0);
+        // TODO: 指令集需要重新设计，原有的有部分问题
+    }
 }
 
 uint64_t CodeGen::genBinaryExp (BinaryExp *exp)

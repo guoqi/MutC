@@ -59,7 +59,7 @@ public:
 class Code
 {
 public:
-    Code() {}
+    Code(): __main_addr(-1) {}
 
     // copy constructor
     Code(const Code & code);
@@ -69,11 +69,14 @@ public:
     inline uint64_t codeSize() { return __codeArea_size; }
     inline uint64_t dataSize() { return __dataArea_size; }
     inline void dataSize(uint64_t size) { __dataArea_size = size; }
+    inline uint64_t mainAddr() { return __main_addr; }
+    inline void mainAddr(uint64_t main_addr) { __main_addr = main_addr; }
 
 private:
     Instruction         __codeArea[CODESIZE];
     uint64_t            __codeArea_size;
     uint64_t            __dataArea_size;
+    uint64_t            __main_addr;
 };
 
 #endif //MUTCC_CODE_H

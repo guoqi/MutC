@@ -43,6 +43,9 @@ public:
     void push();
     void pop();
 
+    inline uint64_t bp() { return __bp_stack.top (); }
+    inline uint64_t sp() { return __sp; }
+
 private:
     uint64_t        __sp; // top of stack frame
     stack<uint64_t> __bp_stack; // bottom of stack frame
