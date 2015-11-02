@@ -7,22 +7,7 @@
 #include <map>
 #include "SymbolTable.h"
 
-template<typename TEntry>
-void SymbolTable<TEntry>::insert (typename TEntry::Ptr &value)
-{
-    __table.push_back (value);
-}
 
-template<typename TEntry>
-typename TEntry::Ptr SymbolTable<TEntry>::lookUp (string name)
-{
-    for (auto & i : __table) {
-        if (i->token()->text() == name) {
-            return i;
-        }
-    }
-    return nullptr;
-}
 
 /*
 SymEntry::Ptr VarSymbolTable::lookUp (string name)
@@ -68,7 +53,14 @@ void FuncSymbolTable::insert (SymEntry::Ptr &value)
 }
 */
 
-void Scope::addChild (Scope::Ptr child)
+Scope::~Scope ()
+{
+    for (auto & i : __children) {
+        delete i;
+    }
+}
+
+void Scope::addChild (Scope * child)
 {
     __children.push_back (child);
 }
@@ -78,9 +70,9 @@ void Scope::setParent (Scope * parent)
     __parent = parent;
 }
 
-VarEntry::Ptr Scope::lookUpVar (string name)
+VarEntry * Scope::lookUpVar (string name)
 {
-    VarEntry::Ptr p = varTable.lookUp (name);
+    VarEntry * p = varTable.lookUp (name);
     Scope * s = __parent;
     while (p == nullptr && s != nullptr) {
         p = s->varTable.lookUp (name);
@@ -89,9 +81,9 @@ VarEntry::Ptr Scope::lookUpVar (string name)
     return p;
 }
 
-TypeEntry::Ptr Scope::lookUpType (string name)
+TypeEntry * Scope::lookUpType (string name)
 {
-    TypeEntry::Ptr p = typeTable.lookUp (name);
+    TypeEntry * p = typeTable.lookUp (name);
     Scope * s = __parent;
     while (p == nullptr && s != nullptr)
     {
@@ -101,9 +93,9 @@ TypeEntry::Ptr Scope::lookUpType (string name)
     return p;
 }
 
-FuncEntry::Ptr Scope::lookUpFunc (string name)
+FuncEntry * Scope::lookUpFunc (string name)
 {
-    FuncEntry::Ptr p = funcTable.lookUp (name);
+    FuncEntry * p = funcTable.lookUp (name);
     Scope * s = __parent;
     while (p == nullptr && s != nullptr)
     {
@@ -117,7 +109,8 @@ FuncEntry::Ptr Scope::lookUpFunc (string name)
 
 ScopeTree::ScopeTree ()
 {
-    __cur_scope = __global_scope;
+    __global_scope = make_shared <Scope> ();
+    __cur_scope = __global_scope.get ();
     __cur_index = 0;
 }
 
@@ -137,7 +130,7 @@ void ScopeTree::closeScope ()
     assert(! __stack_scope.empty ());
     assert(! __stack_index.empty ());
 
-    Scope::Ptr tmp_scope;
+    Scope * tmp_scope;
     int tmp_index;
 
     tmp_scope = __stack_scope.top ();

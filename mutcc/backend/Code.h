@@ -19,6 +19,7 @@ using namespace std;
 class Instruction
 {
 public:
+    Instruction() {}
     Instruction(uint64_t instruction): __instruction(instruction) {}
 
     // return operate code
@@ -27,14 +28,22 @@ public:
     // return destation number address
     uint64_t dst();
 
-    // return source number address
-    uint64_t src();
+    // return source 1 number address
+    uint64_t src1();
+
+    // return source 2 number address
+    uint64_t src2();
 
     // return size
     uint64_t size ();
 
     // return operate mode
     uint64_t mode ();
+
+    uint64_t flag ();
+
+    // return condition variable address
+    uint64_t cond();
 
     // return target code address
     uint64_t targetAddress();
@@ -52,8 +61,8 @@ class InstructionFactory
 {
 public:
     Instruction createInstruction (uint64_t op);
-    Instruction createInstruction (uint64_t op, uint64_t targetAddress);
-    Instruction createInstruction (uint64_t op, uint64_t mode, uint64_t src, uint64_t dst);
+    Instruction createInstruction (uint64_t op, uint64_t mode, uint64_t size, uint64_t cond, uint64_t targetAddress);
+    Instruction createInstruction (uint64_t op, uint64_t mode, uint64_t size, uint64_t dst, uint64_t src1, uint64_t src2);
 };
 
 class Code
@@ -71,6 +80,8 @@ public:
     inline void dataSize(uint64_t size) { __dataArea_size = size; }
     inline uint64_t mainAddr() { return __main_addr; }
     inline void mainAddr(uint64_t main_addr) { __main_addr = main_addr; }
+
+    string toString();
 
 private:
     Instruction         __codeArea[CODESIZE];

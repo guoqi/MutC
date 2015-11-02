@@ -45,10 +45,11 @@ uint64_t MemoryMap::mmap (Type *type)
 }
 
 
+// 栈地址分配器分配得到的是一个相对于bp的偏移量
 uint64_t StackMemoryMap::mmap (uint64_t size)
 {
     assert (__sp - size >= 0);
-    uint64_t tmp = __sp;
+    uint64_t tmp = __bp_stack.top () - __sp;
     __sp -= size;
     return tmp;
 }

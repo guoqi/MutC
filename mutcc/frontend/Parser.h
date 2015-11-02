@@ -12,7 +12,7 @@
 
 class Parser {
 public:
-    Parser(Tokenizer & tokenizer);
+    Parser(Tokenizer * tokenizer);
     virtual ~Parser(){}
 
     /*
@@ -28,15 +28,15 @@ protected:
     Token::Ptr nextToken();
     Token::Ptr currentToken();
 
-private:
-    Tokenizer   &       __tokenizer;
+protected:
+    Tokenizer   *       __tokenizer;
 };
 
 
 class MutCParser : public Parser
 {
 public:
-    MutCParser(Tokenizer & tokenizer): Parser(tokenizer) {}
+    MutCParser(Tokenizer * tokenizer): Parser(tokenizer) {}
     virtual ~MutCParser () {}
 
     virtual void parse();
@@ -47,9 +47,9 @@ public:
     ScopeTree & scopeTree() { return __scope_tree; }
 
 private:
-    void decorateOutBlockStmts (Stmt::Ptr s);
-    void decorateInBlockStmts (Stmt::Ptr s, FuncEntry *func);
-    void decorateExp (Exp::Ptr exp, FuncEntry *func);
+    void decorateOutBlockStmts (Stmt::Ptr &s);
+    void decorateInBlockStmts (Stmt::Ptr &s, FuncEntry *func);
+    void decorateExp (Exp::Ptr &exp, FuncEntry *func);
 
     void check (Stmt::Ptr s);
     void checkExp(Exp::Ptr exp);
@@ -82,15 +82,15 @@ private:
     Stmt::Ptr parseExport();
     // funcStmt  := {InBlockStmt}
     Stmt::Ptr parseFunc (Token::Ptr name);
-    Stmt::Ptr parseInBlock(Scope::Ptr curScope);
+    Stmt::Ptr parseInBlock (Scope *curScope);
 
     /*
      * In block stmt
      */
-    Stmt::Ptr parseIfAndClause (Scope::Ptr curScope, string keyword);
-    Stmt::Ptr parseElse (Scope::Ptr curScope);
-    Stmt::Ptr parseWhile (Scope::Ptr curScope);
-    Stmt::Ptr parseFor (Scope::Ptr curScope);
+    Stmt::Ptr parseIfAndClause (Scope *curScope, string keyword);
+    Stmt::Ptr parseElse (Scope *curScope);
+    Stmt::Ptr parseWhile (Scope *curScope);
+    Stmt::Ptr parseFor (Scope *curScope);
     Stmt::Ptr parseReturn ();
     Stmt::Ptr parseAssignment();
 
@@ -115,11 +115,11 @@ private:
      * insert into symbol table
      */
     // declStmt := decl ID{PARAMLIST};
-    void parseDecl(Scope::Ptr curScope);
-    Stmt::Ptr parseLet (Scope::Ptr curScope);
+    void parseDecl (Scope *curScope);
+    Stmt::Ptr parseLet (Scope *curScope);
     // funcStmt := fn ID(PARAMLIST):TYPE
     // PARAMLIST := ID:TYPE(E|,PARAMLIST) | E
-    Token::Ptr parseFunc (Scope::Ptr curScope);
+    Token::Ptr parseFunc (Scope *curScope);
 
     Type * parseType();
 

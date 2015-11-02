@@ -8,7 +8,7 @@
 #include <cstdint>
 #include <stack>
 #include "Size.h"
-#include "frontend/TypeInfo.h"
+#include "../frontend/TypeInfo.h"
 
 using namespace std;
 

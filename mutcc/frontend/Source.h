@@ -52,6 +52,7 @@ private:
     char                __currentChar;
     string              __currentRow;
     BufferReader    &   __reader;
+    bool                __iseof;
 };
 
 #endif //MUTC_SOURCEREADER_H

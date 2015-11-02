@@ -7,7 +7,7 @@
 const int EOL = -2;
 
 Source::Source (BufferReader &reader)
-    : __lineNum (0), __position (-2), __currentChar(-1), __reader(reader)
+    : __lineNum (0), __position (-2), __currentChar(-1), __reader(reader), __iseof(false)
 {
 }
 
@@ -18,6 +18,8 @@ Source::~Source ()
 
 char Source::currentChar ()
 {
+    if (__iseof) { return EOF; } // 避免多次触发异常，因为触发一次异常后，当前类成员的状态处于不稳定的状态，再次触发就可能会导致一些奇怪的情况发生
+
     try {
         if (__position == -2)
         {
@@ -47,6 +49,7 @@ char Source::currentChar ()
     }
     catch (EOFException & e)
     {
+        __iseof = true;
         return EOF;
     }
 }

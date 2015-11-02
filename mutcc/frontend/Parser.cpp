@@ -6,19 +6,19 @@
 #include "Parser.h"
 #include "GlobalConfig.h"
 
-Parser::Parser (Tokenizer &tokenizer)
+Parser::Parser (Tokenizer * tokenizer)
     : __tokenizer(tokenizer)
 {
 }
 
 Token::Ptr Parser::currentToken ()
 {
-    return __tokenizer.currentToken ();
+    return __tokenizer->currentToken ();
 }
 
 Token::Ptr Parser::nextToken ()
 {
-    return __tokenizer.nextToken ();
+    return __tokenizer->nextToken ();
 }
 
 
@@ -36,39 +36,40 @@ void MutCParser::decorateAST ()
     __scope_tree.reset ();
 }
 
-void MutCParser::decorateOutBlockStmts (Stmt::Ptr s)
+void MutCParser::decorateOutBlockStmts (Stmt::Ptr &s)
 {
-    Stmt::Ptr tmp;
-    while (s != nullptr)
+    Stmt::Ptr tmp = s;
+    while (tmp != nullptr)
     {
-        s->setScope (__scope_tree.globalScope ().get ());
-        switch (s->type ())
+        tmp->setScope (__scope_tree.globalScope ().get ());
+        switch (tmp->type ())
         {
             case NodeType::FuncStmt:
-                static_pointer_cast <FuncStmt> (s)->sym_entry =
-                    __scope_tree.curScope ()->lookUpFunc (static_pointer_cast <FuncStmt> (s)->name->text ());
+                static_pointer_cast <FuncStmt> (tmp)->sym_entry =
+                    __scope_tree.curScope ()->lookUpFunc (static_pointer_cast <FuncStmt> (tmp)->name->text ());
                 __scope_tree.enterScope ();
-                decorateInBlockStmts (static_pointer_cast<FuncStmt> (s)->block_stmt,
-                                      static_cast <FuncEntry *>(static_pointer_cast <FuncStmt> (s)->sym_entry.get ()));
+                decorateInBlockStmts (static_pointer_cast<FuncStmt> (tmp)->block_stmt,
+                                      static_cast <FuncEntry *>(static_pointer_cast <FuncStmt> (tmp)->sym_entry));
                 __scope_tree.closeScope ();
                 break;
             case NodeType::LetStmt:
-                static_pointer_cast <LetStmt> (s)->sym_entry =
-                    __scope_tree.curScope ()->lookUpVar (static_pointer_cast <LetStmt> (s)->var->text ());
+                static_pointer_cast <LetStmt> (tmp)->sym_entry =
+                    __scope_tree.curScope ()->lookUpVar (static_pointer_cast <LetStmt> (tmp)->var->text ());
                 break;
             default:
                 break;
         }
-        s = s->next ();
+        tmp = tmp->next ();
     }
 }
 
-void MutCParser::decorateInBlockStmts (Stmt::Ptr s, FuncEntry *func)
+void MutCParser::decorateInBlockStmts (Stmt::Ptr & root, FuncEntry *func)
 {
+    Stmt::Ptr s = root;
     Stmt::Ptr tmp;
     while (s != nullptr)
     {
-        s->setScope (__scope_tree.curScope ().get ());
+        s->setScope (__scope_tree.curScope ());
         switch (s->type ())
         {
             case NodeType::LetStmt:
@@ -115,9 +116,9 @@ void MutCParser::decorateInBlockStmts (Stmt::Ptr s, FuncEntry *func)
     }
 }
 
-void MutCParser::decorateExp (Exp::Ptr exp, FuncEntry *func)
+void MutCParser::decorateExp (Exp::Ptr &exp, FuncEntry *func)
 {
-    exp->setScope (__scope_tree.curScope ().get ());
+    exp->setScope (__scope_tree.curScope ());
     switch (exp->type ())
     {
         case NodeType::UnaryExp:
@@ -335,9 +336,9 @@ void MutCParser::checkVariable (Exp::Ptr exp)
 
 void MutCParser::checkAssignment (Stmt::Ptr assignment)
 {
-    SymEntry::Ptr entry = static_pointer_cast <AssignmentStmt> (assignment)->sym_entry;
+    SymEntry * entry = static_pointer_cast <AssignmentStmt> (assignment)->sym_entry;
     checkExp (static_pointer_cast <AssignmentStmt> (assignment)->rvalue);
-    if (! compareType (static_pointer_cast <VarEntry> (entry)->typeInfo (),
+    if (! compareType (static_cast <VarEntry *> (entry)->typeInfo (),
         static_pointer_cast <AssignmentStmt> (assignment)->rvalue->typeInfo ()))
     {
         // TODO error handling: type mismatch
@@ -355,12 +356,11 @@ Stmt::Ptr MutCParser::parseOutBlock ()
     Stmt::Ptr root = make_shared <Stmt>();
     Stmt::Ptr p = root;
 
-    root->next (nullptr);
-
     while(nextToken ()->type () != TokenType::Terminator)
     {
-        Token::Ptr curToken = currentToken ();
+        Token::Ptr curToken = Parser::currentToken ();
         string text = curToken->text ();
+        cout << "Outblock: " << text << endl;
 
         if (curToken->type () == TokenType::Keyword)
         {
@@ -374,18 +374,18 @@ Stmt::Ptr MutCParser::parseOutBlock ()
             }
             else if (text == "decl")
             {
-                parseDecl (__scope_tree.globalScope ());
+                parseDecl (__scope_tree.globalScope ().get ());
                 continue;
             }
             else if (text == "fn")
             {
                 // first we need parse function header and then we should parse function body.
-                Token::Ptr name = parseFunc (__scope_tree.globalScope ());
+                Token::Ptr name = parseFunc (__scope_tree.globalScope ().get ());
                 p->next (parseFunc (name));
             }
             else if (text == "let")
             {
-                p->next (parseLet (__scope_tree.globalScope ()));
+                p->next (parseLet (__scope_tree.globalScope ().get ()));
             }
             else
             {
@@ -398,7 +398,6 @@ Stmt::Ptr MutCParser::parseOutBlock ()
         }
 
         p = p->next ();
-        p->next (nullptr);
     }
 
     return root->next ();
@@ -438,7 +437,7 @@ Stmt::Ptr MutCParser::parseFunc (Token::Ptr name)
     assert (currentToken ()->type () == TokenType::Symbol && currentToken ()->text () == "{");
     static_pointer_cast <FuncStmt> (p)->name = name;
     nextToken ();
-    Scope::Ptr scope = make_shared <Scope> ();
+    Scope * scope = new Scope;
     static_pointer_cast <FuncStmt> (p)->block_stmt = parseInBlock (scope);
     __scope_tree.globalScope ()->addChild (scope);
     scope->setParent (__scope_tree.globalScope ().get ());
@@ -446,18 +445,17 @@ Stmt::Ptr MutCParser::parseFunc (Token::Ptr name)
     return p;
 }
 
-Stmt::Ptr MutCParser::parseInBlock (Scope::Ptr curScope)
+Stmt::Ptr MutCParser::parseInBlock (Scope *curScope)
 {
     Stmt::Ptr root = make_shared <Stmt> ();
     Stmt::Ptr p = root;
-
-    root->next (nullptr);
 
     while (currentToken ()->type () != TokenType::Terminator
         && ! (currentToken ()->type () == TokenType::Symbol && currentToken ()->text () == "}"))
     {
         Token::Ptr curToken = currentToken ();
         string text = curToken->text ();
+        cout << "Inblock: " << text << endl;
 
         if (curToken->type () == TokenType::Keyword)
         {
@@ -465,7 +463,7 @@ Stmt::Ptr MutCParser::parseInBlock (Scope::Ptr curScope)
             {
                 p->next (parseIfAndClause (curScope, "if"));
                 p = p->next ();
-                p->next (nullptr);
+                // p->next (nullptr);
                 continue;
             }
             else if (text == "while")
@@ -493,9 +491,6 @@ Stmt::Ptr MutCParser::parseInBlock (Scope::Ptr curScope)
         {
             // asume it is an assignment statement
             p->next (parseAssignment ());
-            p = p->next ();
-            p->next (nullptr);
-            continue;
         }
         else
         {
@@ -503,14 +498,13 @@ Stmt::Ptr MutCParser::parseInBlock (Scope::Ptr curScope)
         }
         nextToken ();
         p = p->next ();
-        p->next (nullptr);
     }
 
     return root->next ();
 }
 
 // 该函数调用之后会导致token往前读入一个，因此在外围不用再读取下一个token
-Stmt::Ptr MutCParser::parseIfAndClause (Scope::Ptr curScope, string keyword)
+Stmt::Ptr MutCParser::parseIfAndClause (Scope *curScope, string keyword)
 {
     Stmt::Ptr p = make_shared <IfStmt> ();
     assert(currentToken ()->type () == TokenType::Keyword && currentToken ()->text () == keyword);
@@ -519,10 +513,10 @@ Stmt::Ptr MutCParser::parseIfAndClause (Scope::Ptr curScope, string keyword)
     static_pointer_cast <IfStmt> (p)->condition = parseExp ();
     assert(currentToken ()->type () == TokenType::Symbol && currentToken ()->text () == ")");
     assert(nextToken ()->type () == TokenType::Symbol && currentToken ()->text () == "{");
-    Scope::Ptr scope = make_shared <Scope> ();
+    Scope * scope = new Scope;
     static_pointer_cast <IfStmt> (p)->block_stmt = parseInBlock (scope);
     curScope->addChild (scope);
-    scope->setParent (curScope.get ());
+    scope->setParent (curScope);
     assert(currentToken ()->type () == TokenType::Symbol && currentToken ()->text () == "}");
     nextToken ();
     if (currentToken ()->type () == TokenType::Keyword && currentToken ()->text () == "elif")
@@ -536,22 +530,22 @@ Stmt::Ptr MutCParser::parseIfAndClause (Scope::Ptr curScope, string keyword)
     return p;
 }
 
-Stmt::Ptr MutCParser::parseElse (Scope::Ptr curScope)
+Stmt::Ptr MutCParser::parseElse (Scope *curScope)
 {
     Stmt::Ptr p = make_shared <IfStmt> ();
     assert (currentToken ()->type () == TokenType::Keyword && currentToken ()->text () == "else");
     assert (nextToken ()->type () == TokenType::Symbol && currentToken ()->text () == "{");
     nextToken ();
     static_pointer_cast <IfStmt> (p)->condition = nullptr;
-    Scope::Ptr scope = make_shared <Scope> ();
+    Scope * scope = new Scope;
     static_pointer_cast <IfStmt> (p)->block_stmt = parseInBlock (scope);
     curScope->addChild (scope);
-    scope->setParent (curScope.get ());
+    scope->setParent (curScope);
     assert (currentToken ()->type () == TokenType::Symbol && currentToken ()->text () == "}");
     return p;
 }
 
-Stmt::Ptr MutCParser::parseWhile (Scope::Ptr curScope)
+Stmt::Ptr MutCParser::parseWhile (Scope *curScope)
 {
     Stmt::Ptr p = make_shared <WhileStmt> ();
     assert(currentToken ()->type () == TokenType::Keyword && currentToken ()->text () == "while");
@@ -560,15 +554,15 @@ Stmt::Ptr MutCParser::parseWhile (Scope::Ptr curScope)
     static_pointer_cast <WhileStmt> (p)->condition = parseExp ();
     assert(currentToken ()->type () == TokenType::Symbol && currentToken ()->text () == ")");
     assert(nextToken ()->type () == TokenType::Symbol && currentToken ()->text () == "{");
-    Scope::Ptr scope = make_shared <Scope> ();
+    Scope * scope = new Scope;
     static_pointer_cast <WhileStmt> (p)->block_stmt = parseInBlock (scope);
     curScope->addChild (scope);
-    scope->setParent (curScope.get ());
+    scope->setParent (curScope);
     assert(currentToken ()->type () == TokenType::Symbol && currentToken ()->text () == "}");
     return p;
 }
 
-Stmt::Ptr MutCParser::parseFor (Scope::Ptr curScope)
+Stmt::Ptr MutCParser::parseFor (Scope *curScope)
 {
     Stmt::Ptr p = make_shared <ForStmt> ();
     assert(currentToken ()->type () == TokenType::Keyword && currentToken ()->text () == "for");
@@ -583,10 +577,10 @@ Stmt::Ptr MutCParser::parseFor (Scope::Ptr curScope)
     static_pointer_cast <ForStmt> (p)->modify_stmt = parseAssignment ();
     assert(currentToken ()->type () == TokenType::Symbol && currentToken ()->text () == ")");
     assert(nextToken ()->type () == TokenType::Symbol && currentToken ()->text () == "{");
-    Scope::Ptr scope = make_shared <Scope> ();
+    Scope * scope = new Scope;
     static_pointer_cast <ForStmt> (p)->block_stmt = parseInBlock (scope);
     curScope->addChild (scope);
-    scope->setParent (curScope.get ());
+    scope->setParent (curScope);
     assert(currentToken ()->type () == TokenType::Symbol && currentToken ()->text () == "}");
     return p;
 }
@@ -613,6 +607,7 @@ Stmt::Ptr MutCParser::parseAssignment ()
     static_pointer_cast <AssignmentStmt> (p)->op = currentToken ();
     nextToken ();
     static_pointer_cast <AssignmentStmt> (p)->rvalue = parseExp ();
+    assert (currentToken ()->type () == TokenType::Symbol && currentToken ()->text () == ";");
     return p;
 }
 
@@ -670,7 +665,7 @@ Exp::Ptr MutCParser::parseExpC ()
         }
         else
         {
-            // TODO error handling: expected comparsion operator
+            p = expr1;
         }
     }
     else
@@ -695,7 +690,7 @@ Exp::Ptr MutCParser::parseExpD ()
         }
         else
         {
-            // TODO error handling: expected plus/minus operator
+            p = expr1;
         }
     }
     else
@@ -720,7 +715,7 @@ Exp::Ptr MutCParser::parseExpE ()
         }
         else
         {
-            // TODO error handling: expected multiplus/division/module operator
+            p = expr1;
         }
     }
     else
@@ -769,7 +764,7 @@ Exp::Ptr MutCParser::parseExpG ()
         }
         else
         {
-            // TODO error handling: unknown symbol
+            p = expr1;
         }
     }
     else
@@ -820,7 +815,7 @@ Exp::Ptr MutCParser::parseAtomicTerm ()
             }
             else
             {
-                // TODO error handling: unknown symbol
+                p = make_shared <AtomicExp> (tmp);
             }
         }
         else
@@ -911,7 +906,7 @@ Type* MutCParser::parseType ()
     }
     else if (currentToken ()->type () == TokenType::Identifier)
     {
-        TypeEntry * type_entry = __scope_tree.globalScope ()->lookUpType (currentToken ()->text ()).get ();
+        TypeEntry * type_entry = __scope_tree.globalScope ()->lookUpType (currentToken ()->text ());
         if (p == nullptr) {
             // TODO error handling: unknown type name
         }
@@ -925,7 +920,7 @@ Type* MutCParser::parseType ()
     return p;
 }
 
-void MutCParser::parseDecl (Scope::Ptr curScope)
+void MutCParser::parseDecl (Scope *curScope)
 {
     assert(currentToken ()->type () == TokenType::Keyword && currentToken ()->text () == "decl");
     TypeEntry::Ptr p = make_shared <TypeEntry> (nextToken ());
@@ -936,9 +931,9 @@ void MutCParser::parseDecl (Scope::Ptr curScope)
     curScope->typeTable.insert (p);
 }
 
-Stmt::Ptr MutCParser::parseLet (Scope::Ptr curScope)
+Stmt::Ptr MutCParser::parseLet (Scope *curScope)
 {
-    assert(currentToken ()->type () == TokenType::Symbol && currentToken ()->text () == "let");
+    assert(currentToken ()->type () == TokenType::Keyword && currentToken ()->text () == "let");
     Token::Ptr name = nextToken ();
     assert(nextToken ()->type () == TokenType::Symbol && currentToken ()->text () == ":");
     nextToken ();
@@ -950,15 +945,17 @@ Stmt::Ptr MutCParser::parseLet (Scope::Ptr curScope)
     return s;
 }
 
-Token::Ptr MutCParser::parseFunc (Scope::Ptr curScope)
+Token::Ptr MutCParser::parseFunc (Scope *curScope)
 {
     assert(currentToken ()->type () == TokenType::Keyword && currentToken ()->text () == "fn");
     FuncEntry::Ptr p = make_shared <FuncEntry> (nextToken ());
+    nextToken ();
     assert(currentToken ()->type () == TokenType::Symbol && currentToken ()->text () == "(");
     nextToken ();
     toolParamList<FuncEntry> (p, ",", ")");
     assert(currentToken ()->type () == TokenType::Symbol && currentToken ()->text () == ")");
     assert (nextToken ()->type () == TokenType::Symbol && currentToken ()->text () == ":");
+    nextToken ();
     p->ret_type = parseType ();
     curScope->funcTable.insert (p);
     return p->token ();

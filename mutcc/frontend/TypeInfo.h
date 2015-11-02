@@ -12,6 +12,10 @@
 
 using namespace std;
 
+
+class TypeEntry;
+
+
 enum class TypeInfo {
 /*
  * Semantics requirement: Only Pointer type and array type can point to another type.

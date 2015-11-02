@@ -36,14 +36,31 @@ public:
     SymbolTable() {}
     virtual ~SymbolTable () {}
 
-    virtual typename TEntry::Ptr lookUp(string name);
-    virtual void insert(typename TEntry::Ptr & value);
+    TEntry * lookUp (string name);
+    void insert(typename TEntry::Ptr value);
 
     inline vector<typename TEntry::Ptr> & table() { return __table; };
 
 private:
     vector<typename TEntry::Ptr>    __table;
 };
+
+template<typename TEntry>
+void SymbolTable<TEntry>::insert (typename TEntry::Ptr value)
+{
+    __table.push_back (value);
+}
+
+template<typename TEntry>
+TEntry * SymbolTable<TEntry>::lookUp (string name)
+{
+    for (auto & i : __table) {
+        if (i->token()->text() == name) {
+            return i.get();
+        }
+    }
+    return nullptr;
+}
 
 
 typedef SymbolTable<VarEntry>  VarSymbolTable;
@@ -57,7 +74,7 @@ public:
     SymEntry(Token::Ptr token, EntryType type): __entry_type(type), __token(token), __address(0) {}
     virtual ~SymEntry() {}
 
-    inline Token::Ptr token() { return __token; }
+    inline Token::Ptr & token() { return __token; }
     inline EntryType entryType() { return __entry_type; }
 
     inline void address(uint64_t address) { __address = address; }
@@ -150,14 +167,16 @@ class Scope
 public:
     typedef shared_ptr<Scope> Ptr;
 
-    void addChild(Scope::Ptr child);
+    ~Scope ();
+
+    void addChild(Scope * child);
     void setParent(Scope * parent);
 
-    TypeEntry::Ptr lookUpType(string name);
-    VarEntry::Ptr  lookUpVar(string name);
-    FuncEntry::Ptr lookUpFunc(string name);
+    TypeEntry * lookUpType (string name);
+    VarEntry * lookUpVar (string name);
+    FuncEntry * lookUpFunc (string name);
 
-    inline const vector<Scope::Ptr> & children() const { return __children; }
+    inline const vector<Scope *> & children() const { return __children; }
 
     inline const Scope * parent() const { return __parent; }
 
@@ -169,7 +188,7 @@ public:
     FuncSymbolTable     funcTable;
 
 private:
-    vector<Scope::Ptr>  __children;
+    vector<Scope *>     __children;
     Scope   *           __parent;
 };
 
@@ -181,18 +200,18 @@ public:
     void enterScope();
     void closeScope();
 
-    inline Scope::Ptr curScope() { return __cur_scope; }
+    inline Scope * curScope() { return __cur_scope; }
 
-    inline Scope::Ptr globalScope() { return __global_scope; }
-    inline Scope::Ptr globalScope(Scope::Ptr & global) { __global_scope = global; return __global_scope; }
+    inline Scope::Ptr & globalScope() { return __global_scope; }
+    inline Scope::Ptr & globalScope(Scope::Ptr & global) { __global_scope = global; __cur_scope = __global_scope.get (); __cur_index = 0; return __global_scope; }
 
-    inline void reset() { __cur_scope = __global_scope; __cur_index = 0; }
+    inline void reset() { __cur_scope = __global_scope.get (); __cur_index = 0; }
 
 private:
     Scope::Ptr              __global_scope;
-    Scope::Ptr              __cur_scope;    // current scope ptr
+    Scope *                 __cur_scope;    // current scope ptr
     int                     __cur_index;    // current scope index
-    stack<Scope::Ptr>       __stack_scope;
+    stack<Scope *>          __stack_scope;
     stack<int>              __stack_index;
 };
 

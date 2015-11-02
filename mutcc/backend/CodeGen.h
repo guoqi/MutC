@@ -7,15 +7,15 @@
 
 #include "MemoryMap.h"
 #include "Code.h"
-#include "frontend/Parser.h"
-#include "frontend/AST.h"
+#include "../frontend/Parser.h"
+#include "../frontend/AST.h"
 
 class CodeGen
 {
 public:
-    CodeGen(MutCParser & parser): __parser(parser) {}
+    CodeGen(MutCParser * parser): __parser(parser) {}
 
-    Code generate();
+    Code & generate();
 
 private:
     void genOutBlockStmt (Stmt * stmt);
@@ -46,7 +46,7 @@ private:
     void genHalt();
 
 private:
-    MutCParser  &       __parser;
+    MutCParser  *       __parser;
     Code                __code;
     InstructionFactory  __factory;
 

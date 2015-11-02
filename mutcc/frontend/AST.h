@@ -45,6 +45,8 @@ public:
     inline Scope * curScope() { return __curScope; }
     inline void setScope(Scope * scope) { __curScope = scope; }
 
+    virtual void printNode() = 0;
+
 protected:
     NodeType    __type;
     Scope *     __curScope; // 当前所属作用域
@@ -59,6 +61,7 @@ public:
     virtual ~Exp() {}
 
     virtual Type * typeInfo() = 0;
+    virtual void printNode() = 0;
 };
 
 // unary operator expression
@@ -73,6 +76,7 @@ public:
     inline Token::Ptr op() { return __operator; }
 
     virtual Type * typeInfo();
+    virtual void printNode();
 
 protected:
     Token::Ptr      __operator;
@@ -91,6 +95,7 @@ public:
     inline Token::Ptr op() { return __operator; }
 
     virtual Type * typeInfo();
+    virtual void printNode();
 
 protected:
     Token::Ptr      __operator;
@@ -103,10 +108,11 @@ public:
     virtual ~ArrayExp () {}
 
     virtual Type * typeInfo();
+    virtual void printNode();
 
     Token::Ptr                array;
     vector<Exp::Ptr>          index_list;
-    SymEntry::Ptr             sym_entry;
+    SymEntry    *             sym_entry;
 };
 
 struct FuncExp: public Exp
@@ -116,10 +122,11 @@ public:
     virtual ~FuncExp () {}
 
     virtual Type * typeInfo();
+    virtual void printNode();
 
     Token::Ptr            func;
     vector<Exp::Ptr>      param_list;
-    SymEntry::Ptr         sym_entry;
+    SymEntry    *         sym_entry;
 };
 
 struct AtomicExp: public Exp
@@ -129,9 +136,10 @@ public:
     virtual ~AtomicExp() {}
 
     virtual Type * typeInfo();
+    virtual void printNode();
 
     Token::Ptr          var;
-    SymEntry::Ptr       sym_entry;
+    SymEntry    *       sym_entry;
 };
 
 
@@ -140,8 +148,10 @@ class Stmt: public Node
 public:
     typedef shared_ptr<Stmt>    Ptr;
 
-    Stmt(): __next(nullptr) {}
+    Stmt(): __next() {}
     virtual ~Stmt () {}
+
+    virtual void printNode() {}
 
     inline Stmt::Ptr next(Stmt::Ptr n) { __next = n; }
     inline Stmt::Ptr next(void) { return __next; }
@@ -155,12 +165,16 @@ struct ImportStmt: public Stmt
 {
     ImportStmt(): Stmt() { __type = NodeType::ImportStmt; }
 
+    virtual void printNode();
+
     vector<Token::Ptr>  token_list;  // path identifier's list.
 };
 
 struct ExportStmt: public Stmt
 {
     ExportStmt(): Stmt() { __type = NodeType::ExportStmt; }
+
+    virtual void printNode();
 
     vector<Token::Ptr>  token_list; // exported token's list.
 };
@@ -169,17 +183,21 @@ struct FuncStmt: public Stmt
 {
     FuncStmt(): Stmt() { __type = NodeType::FuncStmt; }
 
+    virtual void printNode();
+
     Stmt::Ptr               block_stmt; // root node of inner-block statement linked list
     Token::Ptr              name;
-    SymEntry::Ptr           sym_entry;
+    SymEntry    *           sym_entry;
 };
 
 struct LetStmt: public Stmt
 {
     LetStmt(): Stmt() { __type = NodeType::LetStmt; }
 
+    virtual void printNode();
+
     Token::Ptr      var;
-    SymEntry::Ptr   sym_entry;
+    SymEntry *      sym_entry;
 };
 
 struct IfStmt: public Stmt
@@ -187,6 +205,8 @@ struct IfStmt: public Stmt
     typedef shared_ptr<IfStmt>  Ptr;
 
     IfStmt(): Stmt() { __type = NodeType::IfStmt; clause_next = nullptr; }
+
+    virtual void printNode();
 
     Exp::Ptr    condition;  // condition expression
     Stmt::Ptr   block_stmt; // root node of inner-block statement linked list
@@ -198,6 +218,8 @@ struct WhileStmt: public Stmt
 {
     WhileStmt(): Stmt() { __type = NodeType::WhileStmt; }
 
+    virtual void printNode();
+
     Exp::Ptr    condition;  // condition expression
     Stmt::Ptr   block_stmt; // root node of inner-block statement linked list
 };
@@ -208,9 +230,11 @@ struct AssignmentStmt: public Stmt
 
     AssignmentStmt(): Stmt() { __type = NodeType::AssignmentStmt; }
 
+    virtual void printNode();
+
     Token::Ptr  op; // assignment operator
     Token::Ptr  lvalue; // left value
-    SymEntry::Ptr sym_entry;
+    SymEntry *  sym_entry;
     Exp::Ptr    rvalue; // right value
 };
 
@@ -218,12 +242,16 @@ struct ReturnStmt: public Stmt
 {
     ReturnStmt(): Stmt() { __type = NodeType::ReturnStmt; }
 
+    virtual void printNode();
+
     Exp::Ptr    rslt; // return value
 };
 
 struct ForStmt: public Stmt
 {
     ForStmt(): Stmt() { __type = NodeType::ForStmt; }
+
+    virtual void printNode();
 
     // assignment stmt
     Stmt::Ptr               initial_stmt; // initial assignment statement
