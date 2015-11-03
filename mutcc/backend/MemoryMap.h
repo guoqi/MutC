@@ -24,6 +24,8 @@ public:
 
     virtual uint64_t mmap (Type *type);
 
+    virtual uint64_t mmap();
+
     inline uint64_t address() { return __address; }
 
 private:
@@ -39,6 +41,8 @@ public:
     virtual uint64_t mmap(uint64_t size);
 
     virtual uint64_t mmap (Type *type);
+
+    virtual uint64_t mmap();
 
     void push();
     void pop();

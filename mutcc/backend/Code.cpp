@@ -53,7 +53,9 @@ uint64_t Instruction::targetAddress ()
 
 string Instruction::toString ()
 {
-    // TODO
+    stringstream ss;
+    ss << __instruction;
+    return ss.str ();
 }
 
 void Instruction::toBinary (char *buf)
@@ -65,7 +67,7 @@ void Instruction::toBinary (char *buf)
 
 Instruction InstructionFactory::createInstruction (uint64_t op)
 {
-    assert (op & ZeroOperandMask);
+    // assert (op & ZeroOperandMask);
     return Instruction(op << 56);
 }
 

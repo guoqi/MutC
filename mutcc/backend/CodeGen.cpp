@@ -78,7 +78,8 @@ uint64_t CodeGen::genFuncStmt (FuncStmt *stmt)
     // 参数入栈
     for (auto & i : static_cast <FuncEntry *> (stmt->sym_entry)->memlist.table ())
     {
-        uint64_t address = __stackmap.mmap (i->typeInfo());
+        // uint64_t address = __stackmap.mmap (i->typeInfo());
+        uint64_t address = __stackmap.mmap ();
         i->address(address);
     }
     genInBlockStmt (stmt->block_stmt.get ());
@@ -96,13 +97,15 @@ uint64_t CodeGen::genFuncStmt (FuncStmt *stmt)
 
 void CodeGen::genLetStmtOutBlock (LetStmt *stmt)
 {
-    uint64_t address = __datamap.mmap (static_cast <VarEntry *> (stmt->sym_entry)->typeInfo ());
+    // uint64_t address = __datamap.mmap (static_cast <VarEntry *> (stmt->sym_entry)->typeInfo ());
+    uint64_t address = __datamap.mmap ();
     static_cast <VarEntry *> (stmt->sym_entry)->address (address);
 }
 
 uint64_t CodeGen::genLetStmtInBlock (LetStmt *stmt)
 {
-    uint64_t address = __stackmap.mmap (static_cast <VarEntry *> (stmt->sym_entry)->typeInfo ());
+    // uint64_t address = __stackmap.mmap (static_cast <VarEntry *> (stmt->sym_entry)->typeInfo ());
+    uint64_t address = __stackmap.mmap ();
     static_cast <VarEntry *> (stmt->sym_entry)->address (address);
 }
 
@@ -197,7 +200,7 @@ uint64_t CodeGen::genReturnStmt (ReturnStmt *stmt)
     uint64_t size = sizeOf (stmt->rslt->typeInfo ());   // TODO 注意表达式的类型推断部分还没完成，而该处需要依赖类型推断，或者依赖函数本身的信息，此处待定
 
     // 将结果放入函数栈开头，由函数调用部分负责取出
-    __code.insertInstruction (__codemap.mmap (), __factory.createInstruction (MOV, MM, size, __stackmap.bp (), rslt_addr));
+    __code.insertInstruction (__codemap.mmap (), __factory.createInstruction (MOV, MM, size, __stackmap.bp (), rslt_addr, NIL));
 
     return start;
 }
@@ -231,26 +234,32 @@ uint64_t CodeGen::genUnaryExp (UnaryExp *exp)
     uint64_t addr;
 
     if (text == "+") {
-        addr = __stackmap.mmap (size);
+        // addr = __stackmap.mmap (size);
+        addr = __stackmap.mmap ();
         inc = __factory.createInstruction (MOV, MM, size, addr, value_addr, NIL);
     }
     else if (text == "-") {
-        addr = __stackmap.mmap (size);
+        // addr = __stackmap.mmap (size);
+        addr = __stackmap.mmap ();
         inc = __factory.createInstruction (SUB, IM, size, addr, 0, value_addr);
     }
     else if (text == "@") {
-        addr = __stackmap.mmap (0x08);
+        // addr = __stackmap.mmap (0x08);
+        addr = __stackmap.mmap ();
         inc = __factory.createInstruction (MOV, IM, 0x08, addr, value_addr, NIL);
     }
     else if (text == "*") {
-        uint64_t tmp_addr = __stackmap.mmap (0x08);
+        // uint64_t tmp_addr = __stackmap.mmap (0x08);
+        uint64_t tmp_addr = __stackmap.mmap ();
         __code.insertInstruction (__codemap.mmap (), __factory.createInstruction (MOV, MM, 0x08, tmp_addr, value_addr, NIL));
         size = sizeOf (exp->expr1->typeInfo ()->next ());
-        addr = __stackmap.mmap (size);
+        // addr = __stackmap.mmap (size);
+        addr = __stackmap.mmap ();
         inc = __factory.createInstruction (MOV, MM, size, addr, tmp_addr, NIL);
     }
     else if (text == "not") {
-        addr = __stackmap.mmap (size);
+        // addr = __stackmap.mmap (size);
+        addr = __stackmap.mmap ();
         inc = __factory.createInstruction (LNOT, MM, size, addr, value_addr, NIL);
     }
     else {
@@ -274,7 +283,8 @@ uint64_t CodeGen::genBinaryExp (BinaryExp *exp)
 
     map<string, uint64_t>::const_iterator iter = BinaryOp2Inc.find (text);
     if (iter != BinaryOp2Inc.end ()) {
-        addr = __stackmap.mmap (size);
+        // addr = __stackmap.mmap (size);
+        addr = __stackmap.mmap ();
         inc = __factory.createInstruction (iter->second, MM, size, addr, left_addr, right_addr);
     }
     else if (text == ".") {
@@ -343,7 +353,8 @@ uint64_t CodeGen::genAtomicExp (AtomicExp *exp)
         return exp->sym_entry->address ();
     }
     else {
-        addr = __stackmap.mmap (sizeOf (exp->typeInfo ()));
+        // addr = __stackmap.mmap (sizeOf (exp->typeInfo ()));
+        addr = __stackmap.mmap ();
         if (exp->var->type () == TokenType::Integer) {
             __code.insertInstruction (__codemap.mmap (), __factory.createInstruction (MOV, IM, sizeOf (exp->typeInfo ()), addr, exp->var->value ().integer, NIL));
         }

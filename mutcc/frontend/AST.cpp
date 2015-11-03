@@ -62,6 +62,18 @@ Type* FuncExp::typeInfo ()
 
 Type* AtomicExp::typeInfo ()
 {
+    if (sym_entry == nullptr) {
+        switch (var->type ()) {
+            case TokenType::Integer:
+                return new AtomicType(TypeInfo::Integer);
+            case TokenType::Real:
+                return new AtomicType(TypeInfo::Real);
+            case TokenType::String:
+                return new AtomicType(TypeInfo::String);
+            default:
+                break;
+        }
+    }
     return static_cast <VarEntry *> (sym_entry)->typeInfo ();
 }
 

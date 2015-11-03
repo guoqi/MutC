@@ -46,10 +46,11 @@ int main ()
     Code & code = codegen->generate ();
     cout << "generating done..." << endl;
 
+    cout << "start outputing..." << endl;
     cout << code.toString () << endl;
+    cout << "outputing done..." << endl;
 
     delete codegen;
-    delete parser;
     delete tokenizer;
 
     return 0;

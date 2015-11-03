@@ -44,6 +44,11 @@ uint64_t MemoryMap::mmap (Type *type)
     return mmap (size);
 }
 
+uint64_t MemoryMap::mmap ()
+{
+    return mmap(1);
+}
+
 
 // 栈地址分配器分配得到的是一个相对于bp的偏移量
 uint64_t StackMemoryMap::mmap (uint64_t size)
@@ -57,6 +62,11 @@ uint64_t StackMemoryMap::mmap (uint64_t size)
 uint64_t StackMemoryMap::mmap (Type *type)
 {
     return mmap(sizeOf (type));
+}
+
+uint64_t StackMemoryMap::mmap ()
+{
+    return mmap(1);
 }
 
 void StackMemoryMap::push ()
