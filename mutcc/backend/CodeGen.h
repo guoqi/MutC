@@ -30,6 +30,7 @@ private:
     uint64_t genForStmt (ForStmt *stmt);
     uint64_t genAssignmentStmt (AssignmentStmt *stmt);
     uint64_t genReturnStmt (ReturnStmt *stmt);
+    uint64_t genPrintStmt (PrintStmt * stmt);
 
     // 以下函数均返回存储表达式结果的**临时变量的地址**
     uint64_t genExp (Exp *exp);

@@ -4,6 +4,7 @@
 
 #include <cassert>
 #include <sstream>
+#include <iostream>
 #include "Code.h"
 
 uint64_t Instruction::opCode ()
@@ -55,6 +56,7 @@ string Instruction::toString ()
 {
     stringstream ss;
     ss << __instruction;
+    cout << "inc: " << __instruction << endl;
     return ss.str ();
 }
 
@@ -74,7 +76,8 @@ Instruction InstructionFactory::createInstruction (uint64_t op)
 Instruction InstructionFactory::createInstruction (uint64_t op, uint64_t mode, uint64_t size, uint64_t cond, uint64_t targetAddress)
 {
     assert (op & SingleOperandMask);
-    return Instruction((op << 56) | ((mode << 54) & 0x00C0000000000000) | ((size << 48) & 0x000F000000000000) | (0x00000000FFFFFFFF & targetAddress));
+    return Instruction((op << 56) | ((mode << 54) & 0x00C0000000000000) | ((size << 48) & 0x000F000000000000)
+                           | ((cond << 32) & 0x0000FFFF00000000) | (0x00000000FFFFFFFF & targetAddress));
 }
 
 Instruction InstructionFactory::createInstruction (uint64_t op, uint64_t mode, uint64_t size, uint64_t dst, uint64_t src1, uint64_t src2)
@@ -105,7 +108,11 @@ void Code::insertInstruction (uint64_t address, Instruction inc)
 string Code::toString ()
 {
     stringstream ss;
+    ss << __main_addr << endl;
+    ss << __codeArea_size << endl;
+    ss << __dataArea_size << endl;
     for (int i=0; i<__codeArea_size; i++) {
+        cout << __codeArea[i].opCode () << endl;
         ss << __codeArea[i].toString () << endl;
     }
     return ss.str ();

@@ -8,7 +8,7 @@ add_subdirectory(backend)
 
 aux_source_directory(. DIR_SRCS)
 
-set(SOURCE_FILES main.cpp)
+set(SOURCE_FILES main.cpp ${DIR_SRCS})
 add_executable(mutcvm ${SOURCE_FILES})
 
 target_link_libraries(mutcvm backend)

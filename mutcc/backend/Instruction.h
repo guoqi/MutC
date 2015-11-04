@@ -15,6 +15,7 @@
 #define JZ      0x41
 #define JNZ     0x42
 #define JMP     0x43
+#define PNT     0x44
 
 #define MOV     0x80
 // TODO 位运算暂时先不实现，留个坑

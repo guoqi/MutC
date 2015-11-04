@@ -1,3 +1,5 @@
 common/
 .idea/
 build/
+*.swap
+*.bak

@@ -63,6 +63,9 @@ uint64_t CodeGen::genInBlockStmt (Stmt *stmt)
             case NodeType::ReturnStmt:
                 genReturnStmt (static_cast <ReturnStmt *> (stmt));
                 break;
+            case NodeType::PrintStmt:
+                genPrintStmt (static_cast <PrintStmt *> (stmt));
+                break;
             default:
                 break;
         }
@@ -83,7 +86,7 @@ uint64_t CodeGen::genFuncStmt (FuncStmt *stmt)
         i->address(address);
     }
     genInBlockStmt (stmt->block_stmt.get ());
-    genPopSP ();
+    // genPopSP ();
     if (stmt->name->text () == "main") {
         __code.mainAddr (start);
         genHalt ();
@@ -112,6 +115,11 @@ uint64_t CodeGen::genLetStmtInBlock (LetStmt *stmt)
 uint64_t CodeGen::genIfStmt (IfStmt *stmt)
 {
     uint64_t start = __codemap.curAddr ();
+    if (stmt->condition == nullptr) {
+        cout << static_cast <AssignmentStmt *> (stmt->block_stmt.get ())->sym_entry << endl;
+        return genInBlockStmt (stmt->block_stmt.get ());
+    }
+
     uint64_t rslt_addr = genExp (stmt->condition.get ());
 
     __stackmap.push ();
@@ -173,19 +181,20 @@ uint64_t CodeGen::genAssignmentStmt (AssignmentStmt *stmt)
         inc = __factory.createInstruction (MOV, MM, size, stmt->sym_entry->address (), rvalue_tmp, NIL);
     }
     else if (text == "+=") {
-        inc = __factory.createInstruction (ADD, MM, size, stmt->sym_entry->address (), rvalue_tmp, stmt->sym_entry->address ());
+        inc = __factory.createInstruction (ADD, MM, size, stmt->sym_entry->address (), stmt->sym_entry->address (), rvalue_tmp);
     }
     else if (text == "-=") {
-        inc = __factory.createInstruction (SUB, MM, size, stmt->sym_entry->address (), rvalue_tmp, stmt->sym_entry->address ());
+        inc = __factory.createInstruction (SUB, MM, size, stmt->sym_entry->address (), stmt->sym_entry->address (), rvalue_tmp);
+        cout << inc.opCode () << endl;
     }
     else if (text == "*=") {
-        inc = __factory.createInstruction (MUL, MM, size, stmt->sym_entry->address (), rvalue_tmp, stmt->sym_entry->address ());
+        inc = __factory.createInstruction (MUL, MM, size, stmt->sym_entry->address (), stmt->sym_entry->address (), rvalue_tmp);
     }
     else if (text == "/=") {
-        inc = __factory.createInstruction (DIV, MM, size, stmt->sym_entry->address (), rvalue_tmp, stmt->sym_entry->address ());
+        inc = __factory.createInstruction (DIV, MM, size, stmt->sym_entry->address (), stmt->sym_entry->address (), rvalue_tmp);
     }
     else if (text == "%=") {
-        inc = __factory.createInstruction (MOD, MM, size, stmt->sym_entry->address (), rvalue_tmp, stmt->sym_entry->address ());
+        inc = __factory.createInstruction (MOD, MM, size, stmt->sym_entry->address (), stmt->sym_entry->address (), rvalue_tmp);
     }
     __code.insertInstruction (__codemap.mmap (), inc);
 
@@ -197,10 +206,21 @@ uint64_t CodeGen::genReturnStmt (ReturnStmt *stmt)
     uint64_t start = __codemap.curAddr ();
 
     uint64_t rslt_addr = genExp(stmt->rslt.get ());
-    uint64_t size = sizeOf (stmt->rslt->typeInfo ());   // TODO 注意表达式的类型推断部分还没完成，而该处需要依赖类型推断，或者依赖函数本身的信息，此处待定
+    // uint64_t size = sizeOf (stmt->rslt->typeInfo ());   // TODO 注意表达式的类型推断部分还没完成，而该处需要依赖类型推断，或者依赖函数本身的信息，此处待定
+    uint64_t size = 8;
 
     // 将结果放入函数栈开头，由函数调用部分负责取出
     __code.insertInstruction (__codemap.mmap (), __factory.createInstruction (MOV, MM, size, __stackmap.bp (), rslt_addr, NIL));
+
+    return start;
+}
+
+uint64_t CodeGen::genPrintStmt (PrintStmt *stmt)
+{
+    uint64_t start = __codemap.curAddr ();
+
+    uint64_t rslt_addr = genExp(stmt->rslt.get());
+    __code.insertInstruction (__codemap.mmap (), __factory.createInstruction (PNT, AD, 0x08, rslt_addr, NIL));
 
     return start;
 }
@@ -282,10 +302,12 @@ uint64_t CodeGen::genBinaryExp (BinaryExp *exp)
     Instruction inc(0);
 
     map<string, uint64_t>::const_iterator iter = BinaryOp2Inc.find (text);
+    cout << text << endl;
     if (iter != BinaryOp2Inc.end ()) {
         // addr = __stackmap.mmap (size);
         addr = __stackmap.mmap ();
         inc = __factory.createInstruction (iter->second, MM, size, addr, left_addr, right_addr);
+        cout << "debug: " << inc.opCode () << endl;
     }
     else if (text == ".") {
         // TODO
@@ -355,11 +377,12 @@ uint64_t CodeGen::genAtomicExp (AtomicExp *exp)
     else {
         // addr = __stackmap.mmap (sizeOf (exp->typeInfo ()));
         addr = __stackmap.mmap ();
+        cout << "addr: " << addr << endl;
         if (exp->var->type () == TokenType::Integer) {
-            __code.insertInstruction (__codemap.mmap (), __factory.createInstruction (MOV, IM, sizeOf (exp->typeInfo ()), addr, exp->var->value ().integer, NIL));
+            __code.insertInstruction (__codemap.mmap (), __factory.createInstruction (MOV, IM, 8, addr, exp->var->value ().integer, NIL));
         }
         else {
-            __code.insertInstruction (__codemap.mmap (), __factory.createInstruction (MOV, IM, sizeOf (exp->typeInfo ()), addr, (uint64_t)exp->var->value ().real, NIL));
+            __code.insertInstruction (__codemap.mmap (), __factory.createInstruction (MOV, IM, 8, addr, (uint64_t)exp->var->value ().real, NIL));
         }
     }
     return addr;

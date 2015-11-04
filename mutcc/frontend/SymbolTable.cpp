@@ -117,6 +117,7 @@ ScopeTree::ScopeTree ()
 void ScopeTree::enterScope ()
 {
     if (__cur_scope->children ().empty ()) {
+        // return;
         throw std::exception();
     }
     __stack_scope.push (__cur_scope);
@@ -127,9 +128,23 @@ void ScopeTree::enterScope ()
 
 void ScopeTree::closeScope ()
 {
-    assert(! __stack_scope.empty ());
-    assert(! __stack_index.empty ());
+    /*
+    if (__stack_scope.empty () || __stack_index.empty ()) {
+        return;
+    }
+     */
+    assert (! __stack_scope.empty ());
+    assert (! __stack_index.empty ());
 
+    if (__cur_index >= __cur_scope->children ().size () && ! __stack_scope.empty () && ! __stack_index.empty ())
+    {
+        __cur_scope = __stack_scope.top ();
+        __cur_index = __stack_index.top () + 1;
+        __stack_scope.pop ();
+        __stack_index.pop ();
+    }
+
+    /*
     Scope * tmp_scope;
     int tmp_index;
 
@@ -145,4 +160,8 @@ void ScopeTree::closeScope ()
         __stack_scope.pop ();
         __stack_index.pop ();
     }
+
+    __cur_scope = tmp_scope;
+    __cur_index = tmp_index;
+     */
 }

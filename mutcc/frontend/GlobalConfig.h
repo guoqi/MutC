@@ -34,7 +34,8 @@ const set<string> KEYWORD_SET = {
     "or",
     "not"
     "export",
-    "return"
+    "return",
+    "print"
 };
 
 const set<string> ASSIGNMENTOP = {

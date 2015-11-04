@@ -54,7 +54,7 @@ uint64_t MemoryMap::mmap ()
 uint64_t StackMemoryMap::mmap (uint64_t size)
 {
     assert (__sp - size >= 0);
-    uint64_t tmp = __bp_stack.top () - __sp;
+    uint64_t tmp = __sp;
     __sp -= size;
     return tmp;
 }

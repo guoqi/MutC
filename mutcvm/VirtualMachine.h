@@ -10,6 +10,7 @@
 #include <sstream>
 #include "backend/Size.h"
 #include "backend/Instruction.h"
+#include "backend/Code.h"
 
 #define FROMDATA    1
 #define FROMSTACK   2
@@ -46,5 +47,6 @@ private:
 };
 
 VM * initVM(ifstream & file);
+uint64_t atoull(const char * str);
 
 #endif //MUTCVM_VIRTUALMACHINE_H

@@ -93,6 +93,7 @@ private:
     Stmt::Ptr parseFor (Scope *curScope);
     Stmt::Ptr parseReturn ();
     Stmt::Ptr parseAssignment();
+    Stmt::Ptr parsePrint ();
 
     /*
      * Expression

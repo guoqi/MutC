@@ -137,7 +137,9 @@ void IfStmt::printNode ()
     }
     cout << "</block>" << endl;
     cout << "</branch>" << endl;
-    clause_next->printNode ();
+    if (clause_next != nullptr) {
+        clause_next->printNode ();
+    }
 }
 
 void WhileStmt::printNode ()
@@ -176,6 +178,13 @@ void ReturnStmt::printNode ()
     cout << "<return>" << endl;
     rslt->printNode ();
     cout << "</return>" << endl;
+}
+
+void PrintStmt::printNode ()
+{
+    cout << "<print>" << endl;
+    rslt->printNode ();
+    cout << "</print>" << endl;
 }
 
 void ForStmt::printNode ()

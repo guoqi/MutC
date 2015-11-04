@@ -84,8 +84,9 @@ void MutCParser::decorateInBlockStmts (Stmt::Ptr & root, FuncEntry *func)
                     __scope_tree.enterScope ();
                     decorateInBlockStmts (static_pointer_cast<IfStmt> (s)->block_stmt, func);
                     __scope_tree.closeScope ();
-                    tmp = static_pointer_cast <IfStmt> (s)->clause_next;
+                    tmp = static_pointer_cast<IfStmt> (tmp)->clause_next;
                 }
+                cout << "hhh" << endl;
                 break;
             case NodeType::WhileStmt:
                 decorateExp (static_pointer_cast<WhileStmt> (s)->condition, func);
@@ -104,10 +105,14 @@ void MutCParser::decorateInBlockStmts (Stmt::Ptr & root, FuncEntry *func)
             case NodeType::AssignmentStmt:
                 static_pointer_cast <AssignmentStmt> (s)->sym_entry =
                     __scope_tree.curScope ()->lookUpVar (static_pointer_cast <AssignmentStmt> (s)->lvalue->text ());
+                cout << "debug: " << static_pointer_cast <AssignmentStmt> (s)->sym_entry << endl;
                 decorateExp (static_pointer_cast<AssignmentStmt> (s)->rvalue, func);
                 break;
             case NodeType::ReturnStmt:
                 decorateExp (static_pointer_cast<ReturnStmt> (s)->rslt, func);
+                break;
+            case NodeType::PrintStmt:
+                decorateExp (static_pointer_cast<PrintStmt> (s)->rslt, func);
                 break;
             default:
                 break;
@@ -118,6 +123,10 @@ void MutCParser::decorateInBlockStmts (Stmt::Ptr & root, FuncEntry *func)
 
 void MutCParser::decorateExp (Exp::Ptr &exp, FuncEntry *func)
 {
+    if (exp == nullptr) {
+        return;
+    }
+
     exp->setScope (__scope_tree.curScope ());
     switch (exp->type ())
     {
@@ -149,11 +158,16 @@ void MutCParser::decorateExp (Exp::Ptr &exp, FuncEntry *func)
             }
             break;
         case NodeType::AtomicExp:
-            static_pointer_cast <AtomicExp> (exp)->sym_entry =
-                __scope_tree.curScope ()->lookUpVar (static_pointer_cast <AtomicExp> (exp)->var->text ());
-            if (static_pointer_cast <AtomicExp> (exp)->sym_entry == nullptr) {
-                static_pointer_cast <AtomicExp> (exp)->sym_entry =
-                    func->memlist.lookUp (static_pointer_cast <ArrayExp> (exp)->array->text ());
+            if (static_pointer_cast <AtomicExp>(exp)->var->type () == TokenType::Identifier)
+            {
+                static_pointer_cast<AtomicExp> (exp)->sym_entry =
+                    __scope_tree.curScope ()->lookUpVar (static_pointer_cast<AtomicExp> (exp)->var->text ());
+                cout << "test: " << static_pointer_cast <AtomicExp> (exp)->sym_entry << endl;
+                if (static_pointer_cast<AtomicExp> (exp)->sym_entry == nullptr)
+                {
+                    static_pointer_cast<AtomicExp> (exp)->sym_entry =
+                        func->memlist.lookUp (static_pointer_cast<ArrayExp> (exp)->array->text ());
+                }
             }
             break;
         default:
@@ -478,6 +492,10 @@ Stmt::Ptr MutCParser::parseInBlock (Scope *curScope)
             {
                 p->next (parseReturn ());
             }
+            else if (text == "print")
+            {
+                p->next (parsePrint ());
+            }
             else if (text == "let")
             {
                 p->next (parseLet (curScope));
@@ -513,6 +531,7 @@ Stmt::Ptr MutCParser::parseIfAndClause (Scope *curScope, string keyword)
     static_pointer_cast <IfStmt> (p)->condition = parseExp ();
     assert(currentToken ()->type () == TokenType::Symbol && currentToken ()->text () == ")");
     assert(nextToken ()->type () == TokenType::Symbol && currentToken ()->text () == "{");
+    nextToken ();
     Scope * scope = new Scope;
     static_pointer_cast <IfStmt> (p)->block_stmt = parseInBlock (scope);
     curScope->addChild (scope);
@@ -526,6 +545,7 @@ Stmt::Ptr MutCParser::parseIfAndClause (Scope *curScope, string keyword)
     else if (currentToken ()->type () == TokenType::Keyword && currentToken ()->text () == "else")
     {
         static_pointer_cast <IfStmt> (p)->clause_next = parseElse (curScope);
+        nextToken (); // 因为parseElse本身不会多读一个token，所以这里需要手动多读一个
     }
     return p;
 }
@@ -539,6 +559,7 @@ Stmt::Ptr MutCParser::parseElse (Scope *curScope)
     static_pointer_cast <IfStmt> (p)->condition = nullptr;
     Scope * scope = new Scope;
     static_pointer_cast <IfStmt> (p)->block_stmt = parseInBlock (scope);
+    static_pointer_cast <IfStmt> (p)->clause_next = nullptr;
     curScope->addChild (scope);
     scope->setParent (curScope);
     assert (currentToken ()->type () == TokenType::Symbol && currentToken ()->text () == "}");
@@ -554,6 +575,7 @@ Stmt::Ptr MutCParser::parseWhile (Scope *curScope)
     static_pointer_cast <WhileStmt> (p)->condition = parseExp ();
     assert(currentToken ()->type () == TokenType::Symbol && currentToken ()->text () == ")");
     assert(nextToken ()->type () == TokenType::Symbol && currentToken ()->text () == "{");
+    nextToken ();
     Scope * scope = new Scope;
     static_pointer_cast <WhileStmt> (p)->block_stmt = parseInBlock (scope);
     curScope->addChild (scope);
@@ -591,6 +613,17 @@ Stmt::Ptr MutCParser::parseReturn ()
     assert(currentToken ()->type () == TokenType::Keyword && currentToken ()->text () == "return");
     nextToken ();
     static_pointer_cast <ReturnStmt> (p)->rslt = parseExp ();
+    assert(currentToken ()->type () == TokenType::Symbol && currentToken ()->text () == ";");
+    return p;
+}
+
+Stmt::Ptr MutCParser::parsePrint ()
+{
+    // Stmt::Ptr p = make_shared <PrintStmt> ();
+    Stmt::Ptr p(new PrintStmt());
+    assert(currentToken ()->type () == TokenType::Keyword && currentToken ()->text () == "print");
+    nextToken ();
+    static_pointer_cast <PrintStmt> (p)->rslt = parseExp ();
     assert(currentToken ()->type () == TokenType::Symbol && currentToken ()->text () == ";");
     return p;
 }

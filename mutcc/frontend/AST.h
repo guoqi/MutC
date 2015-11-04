@@ -29,7 +29,8 @@ enum class NodeType {
     WhileStmt,
     ForStmt,
     ReturnStmt,
-    AssignmentStmt
+    AssignmentStmt,
+    PrintStmt
 };
 
 class Scope;
@@ -153,7 +154,7 @@ public:
 
     virtual void printNode() {}
 
-    inline Stmt::Ptr next(Stmt::Ptr n) { __next = n; }
+    inline Stmt::Ptr next(const Stmt::Ptr & n) { __next = n; return __next; }
     inline Stmt::Ptr next(void) { return __next; }
 
 protected:
@@ -204,7 +205,7 @@ struct IfStmt: public Stmt
 {
     typedef shared_ptr<IfStmt>  Ptr;
 
-    IfStmt(): Stmt() { __type = NodeType::IfStmt; clause_next = nullptr; }
+    IfStmt(): Stmt() { __type = NodeType::IfStmt; }
 
     virtual void printNode();
 
@@ -245,6 +246,15 @@ struct ReturnStmt: public Stmt
     virtual void printNode();
 
     Exp::Ptr    rslt; // return value
+};
+
+struct PrintStmt: public Stmt
+{
+    PrintStmt(): Stmt() { __type = NodeType::PrintStmt; }
+
+    virtual void printNode();
+
+    Exp::Ptr    rslt;
 };
 
 struct ForStmt: public Stmt
