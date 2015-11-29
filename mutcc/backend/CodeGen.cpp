@@ -185,7 +185,7 @@ uint64_t CodeGen::genAssignmentStmt (AssignmentStmt *stmt)
     }
     else if (text == "-=") {
         inc = __factory.createInstruction (SUB, MM, size, stmt->sym_entry->address (), stmt->sym_entry->address (), rvalue_tmp);
-        cout << inc.opCode () << endl;
+        // cout << inc.opCode () << endl;
     }
     else if (text == "*=") {
         inc = __factory.createInstruction (MUL, MM, size, stmt->sym_entry->address (), stmt->sym_entry->address (), rvalue_tmp);
@@ -302,12 +302,12 @@ uint64_t CodeGen::genBinaryExp (BinaryExp *exp)
     Instruction inc(0);
 
     map<string, uint64_t>::const_iterator iter = BinaryOp2Inc.find (text);
-    cout << text << endl;
+    // cout << text << endl;
     if (iter != BinaryOp2Inc.end ()) {
         // addr = __stackmap.mmap (size);
         addr = __stackmap.mmap ();
         inc = __factory.createInstruction (iter->second, MM, size, addr, left_addr, right_addr);
-        cout << "debug: " << inc.opCode () << endl;
+        // cout << "debug: " << inc.opCode () << endl;
     }
     else if (text == ".") {
         // TODO
@@ -377,7 +377,6 @@ uint64_t CodeGen::genAtomicExp (AtomicExp *exp)
     else {
         // addr = __stackmap.mmap (sizeOf (exp->typeInfo ()));
         addr = __stackmap.mmap ();
-        cout << "addr: " << addr << endl;
         if (exp->var->type () == TokenType::Integer) {
             __code.insertInstruction (__codemap.mmap (), __factory.createInstruction (MOV, IM, 8, addr, exp->var->value ().integer, NIL));
         }

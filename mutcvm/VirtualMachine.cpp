@@ -29,6 +29,7 @@ void VM::execute ()
     while (1)
     {
         inc = fetchInc ();
+        // cout << inc.opCode () << endl;
         switch (inc.opCode ()) {
         case HALT:
             return;
@@ -45,8 +46,8 @@ void VM::execute ()
             // TODO
             break;
         case JZ:
-            cout << "debug cond: " << inc.cond () << "\t";
-            cout << "Address: " << inc.targetAddress () << endl;
+            // cout << "debug cond: " << inc.cond () << "\t";
+            // cout << "Address: " << inc.targetAddress () << endl;
             if (data (inc.cond (), FROMSTACK) == 0) {
                 jmpTo (inc.targetAddress ());
                 continue;
@@ -65,51 +66,51 @@ void VM::execute ()
             cout << data(inc.cond (), FROMSTACK) << endl;
             break;
         case MOV:
-            cout << "mov dst: " << inc.dst () << "\t";
+            // cout << "mov dst: " << inc.dst () << "\t";
             if (inc.mode () == 0x00)
             {
-                cout << "mov src1 data: " << data(inc.src1 (), FROMSTACK) << endl;
+                // cout << "mov src1 data: " << data(inc.src1 (), FROMSTACK) << endl;
                 data (inc.dst (), FROMSTACK) = data (inc.src1 (), FROMSTACK);
             }
             else if (inc.mode () == 0x02)
             {
-                cout << "mov src1: " << inc.src1 () << endl;
+                // cout << "mov src1: " << inc.src1 () << endl;
                 data (inc.dst (), FROMSTACK) = inc.src1 ();
             }
             break;
         case ADD:
-            cout << "dst: " << data (inc.dst (), FROMSTACK) << "\t";
+            // cout << "dst: " << data (inc.dst (), FROMSTACK) << "\t";
             if (inc.mode () == 0x00)
             {
-                cout << "src1 data: " << data(inc.src1 (), FROMSTACK) << "\t";
-                cout << "src2 data: " << data(inc.src2 (), FROMSTACK) << endl;
+                // cout << "src1 data: " << data(inc.src1 (), FROMSTACK) << "\t";
+                // cout << "src2 data: " << data(inc.src2 (), FROMSTACK) << endl;
                 data (inc.dst (), FROMSTACK) = data (inc.src1 (), FROMSTACK) + data (inc.src2 (), FROMSTACK);
             }
             else if (inc.mode () == 0x01)
             {
-                cout << "src1 data: " << data(inc.src1 (), FROMSTACK) << "\t";
-                cout << "src2: " << inc.src2 () << endl;
+                // cout << "src1 data: " << data(inc.src1 (), FROMSTACK) << "\t";
+                // cout << "src2: " << inc.src2 () << endl;
                 data (inc.dst (), FROMSTACK) = data (inc.src1 (), FROMSTACK) + inc.src2 ();
             }
             else if (inc.mode () == 0x02)
             {
-                cout << "src1: " << inc.src1 () << "\t";
-                cout << "src2 data: " << data (inc.src2 (), FROMSTACK) << endl;
+                // cout << "src1: " << inc.src1 () << "\t";
+                // cout << "src2 data: " << data (inc.src2 (), FROMSTACK) << endl;
                 data (inc.dst (), FROMSTACK) = inc.src1 () + data (inc.src2 (), FROMSTACK);
             }
             else
             {
-                cout << "src1: " << inc.src1 () << "\t";
-                cout << "src2: " << inc.src2 () << endl;
+                // cout << "src1: " << inc.src1 () << "\t";
+                // cout << "src2: " << inc.src2 () << endl;
                 data (inc.dst (), FROMSTACK) = inc.src1 () + inc.src2 ();
             }
-            cout << "after dst: " << data(inc.dst (), FROMSTACK) << endl;
+            // cout << "after dst: " << data(inc.dst (), FROMSTACK) << endl;
             break;
         case SUB:
             if (inc.mode () == 0x00)
             {
                 data (inc.dst (), FROMSTACK) = data (inc.src1 (), FROMSTACK) - data (inc.src2 (), FROMSTACK);
-                cout << "result: " << data (inc.dst (), FROMSTACK) << endl;
+                // cout << "result: " << data (inc.dst (), FROMSTACK) << endl;
             }
             else if (inc.mode () == 0x01)
                 data (inc.dst (), FROMSTACK) = data (inc.src1 (), FROMSTACK) - inc.src2 ();
@@ -207,7 +208,7 @@ void VM::execute ()
         case CL:
             if (inc.mode () == 0x00)
             {
-                if (data (inc.src1 (), FROMSTACK) - data (inc.src2 (), FROMSTACK) >= 0)
+                if (data (inc.src1 (), FROMSTACK) >= data (inc.src2 (), FROMSTACK))
                     data (inc.dst (), FROMSTACK) = 0;
                 else data (inc.dst (), FROMSTACK) = 1;
             }
@@ -285,11 +286,11 @@ void VM::execute ()
         case CE:
             if (inc.mode () == 0x00)
             {
-                cout << "debug src1 data: " << data(inc.src1 (), FROMSTACK) << endl;
-                cout << "debug src1: " << inc.src1 () << endl;
-                cout << "debug src2 data: " << data(inc.src2 (), FROMSTACK) << endl;
-                cout << "debug src2: " << inc.src2 () << endl;
-                cout << "debug dst: " << inc.dst () << endl;
+                // cout << "debug src1 data: " << data(inc.src1 (), FROMSTACK) << endl;
+                // cout << "debug src1: " << inc.src1 () << endl;
+                // cout << "debug src2 data: " << data(inc.src2 (), FROMSTACK) << endl;
+                // cout << "debug src2: " << inc.src2 () << endl;
+                // cout << "debug dst: " << inc.dst () << endl;
                 if (data (inc.src1 (), FROMSTACK) - data (inc.src2 (), FROMSTACK) == 0)
                     data (inc.dst (), FROMSTACK) = 1;
                 else data (inc.dst (), FROMSTACK) = 0;

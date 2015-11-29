@@ -13,7 +13,7 @@ using namespace std;
 
 int main ()
 {
-    ifstream file("/home/guoqi/ClionProjects/MutC/unittest/mutcc/testcases/test4.mc");
+    ifstream file("/home/guoqi/ClionProjects/MutC/unittest/mutcc/testcases/test5.mc");
     if (file.fail ()) {
         cout << "Open file failed." << endl;
         exit(1);

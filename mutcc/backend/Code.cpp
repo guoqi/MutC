@@ -56,7 +56,7 @@ string Instruction::toString ()
 {
     stringstream ss;
     ss << __instruction;
-    cout << "inc: " << __instruction << endl;
+    // cout << "inc: " << __instruction << endl;
     return ss.str ();
 }
 
@@ -112,7 +112,7 @@ string Code::toString ()
     ss << __codeArea_size << endl;
     ss << __dataArea_size << endl;
     for (int i=0; i<__codeArea_size; i++) {
-        cout << __codeArea[i].opCode () << endl;
+        // cout << __codeArea[i].opCode () << endl;
         ss << __codeArea[i].toString () << endl;
     }
     return ss.str ();
